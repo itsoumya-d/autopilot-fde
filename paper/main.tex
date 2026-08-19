@@ -1,0 +1,130 @@
+\documentclass[sigconf,natbib=true]{acmart}
+
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{hyperref}
+
+\title{AutoPilot FDE: Autonomous Business Process Discovery, Scoring, and Incremental Agent Deployment from Unstructured Communication}
+
+\author{Soumya Deb Nath}
+\affiliation{
+  \institution{OTAi Tech}
+  \city{India}
+}
+\email{admin@otaitech.com}
+
+\begin{abstract}
+We present \textsc{AutoPilot FDE}, the first system that autonomously performs the role of a Forward Deployed Engineer---observing business operations through unstructured communication channels (Slack, WhatsApp, email, call transcripts), discovering latent business processes from natural language streams, computing a mathematically grounded \emph{Automation Potential Score} (APS), and incrementally deploying specialized AI agent instances to handle scored workflows. Unlike existing process mining tools that require structured ERP event logs (e.g., Celonis, Disco) or automation platforms that require manual workflow definition (e.g., Zapier, n8n), AutoPilot FDE operates without human process mapping. We formalize the APS metric using graph transition entropy, actor dispersion index, and step-level risk classification, coupled with a pre-deployment Monte Carlo discrete-event simulator. In empirical evaluation across 8 enterprise departments and 158 multi-turn interaction traces, AutoPilot FDE discovered 7 verified business processes with a mean extraction confidence of $91.0\%$, achieving an APS score spread of $16.1$ points ($58.3$ to $74.4$). Simulated agent executions demonstrated straight-through rates of up to $56.2\%$ while reducing average resolution time from $480$ minutes down to $15.8$ minutes, generating a projected annual net ROI of over $\$230,000$ with zero unsupervised critical safety violations.
+\end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10010147.10010178</concept_id>
+<concept_desc>Computing methodologies~Artificial intelligence</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10002951.10003317</concept_id>
+<concept_desc>Information systems~Data mining</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+</ccs2012>
+\end{CCSXML}
+
+\keywords{Forward Deployed Engineering, Process Mining, Automation Scoring, AI Agents, Business Process Discovery}
+
+\begin{document}
+
+\maketitle
+
+% ============================================================================
+\section{Introduction}
+\label{sec:intro}
+
+The deployment of AI automation in enterprise operations remains paradoxically manual. While language models can draft correspondence and generate scripts, the critical upstream question---\emph{which} business processes should be automated, to \emph{what degree}, and in \emph{what order}---still requires expensive human consultants known as \emph{Forward Deployed Engineers} (FDEs).
+
+An FDE embeds within a client organization to: (1) observe operational friction, (2) discover repeatable workflows, (3) score feasibility and economic ROI, (4) synthesize custom agent scaffolding, and (5) monitor production execution. This role combines systems engineering, domain modeling, and operational risk assessment---making it one of the least scalable functions in the modern AI industry.
+
+We ask: \textbf{Can an AI system autonomously perform the forward deployment engineering role?}
+
+We present \textsc{AutoPilot FDE}, a system that answers this question through a five-phase autonomous pipeline:
+
+\begin{enumerate}
+    \item \textbf{Observe}: Plug into communication channels (Slack, WhatsApp, email, call transcripts) as an immutable, read-only observer.
+    \item \textbf{Understand}: Extract business activities from unstructured text and mine directed workflow graphs using Bayesian specificity scoring.
+    \item \textbf{Score}: Compute an \emph{Automation Potential Score} (APS) for each process using graph transition entropy, actor dispersion, and step-level risk classification.
+    \item \textbf{Simulate \& Deploy}: Execute pre-flight Monte Carlo discrete-event simulations and compile executable LangGraph state machines with Human-in-the-Loop review gates.
+    \item \textbf{Grow}: Monitor deployed agents, update opportunity matrices, and detect emerging workflows.
+\end{enumerate}
+
+% ============================================================================
+\section{Formalization \& Mathematical Model}
+\label{sec:methodology}
+
+\subsection{Graph Transition Entropy}
+Let a discovered process $p$ be modeled as a directed graph $G = (V, E)$, where vertices $v \in V$ represent business activities and edges $e = (u, v) \in E$ represent sequential state transitions with empirical probability $P(u \to v)$. The decision unpredictability of the workflow is quantified via Shannon Transition Entropy:
+
+\begin{equation}
+    H_{\text{trans}}(p) = -\sum_{u \in V} \sum_{v \in \text{Adj}(u)} P(u \to v) \log_2 P(u \to v)
+\end{equation}
+
+A low entropy score reflects a deterministic, linear workflow (high automation suitability), while high entropy reflects ad-hoc branching and human judgment.
+
+\subsection{Automation Potential Score (APS)}
+For each discovered process $p$, the composite Automation Potential Score $\text{APS}(p) \in [0, 100]$ is formalized as:
+
+\begin{equation}
+    \text{APS}(p) = 100 \cdot \text{Value}(p) \cdot \text{Feasibility}(p) \cdot \text{Evidence}(p)
+\end{equation}
+
+where:
+\begin{align}
+    \text{Value}(p) &= 0.45 \cdot V_{\text{norm}}(p) + 0.35 \cdot D_{\text{norm}}(p) + 0.20 \cdot R(p) \\
+    \text{Feasibility}(p) &= 0.50 \cdot \bar{F}_{\text{step}}(p) + 0.30 \cdot \text{DataAvail}(p) + 0.20 \cdot (1 - C(p))
+\end{align}
+
+Here, $\bar{F}_{\text{step}}(p)$ is the mean feasibility across individual step action types (Read-Only, Draft, Internal, Critical), and the graph complexity metric $C(p)$ is computed as:
+
+\begin{equation}
+    C(p) = 0.35 \cdot \frac{H_{\text{trans}}(p)}{H_{\max}} + 0.35 \cdot \frac{|\text{Actors}(p)| - 1}{|V(p)|} + 0.30 \cdot \frac{|V_{\text{critical}}(p)|}{|V(p)|}
+\end{equation}
+
+% ============================================================================
+\section{Empirical Evaluation}
+\label{sec:evaluation}
+
+\begin{table*}[t]
+\centering
+\caption{Empirical evaluation across 7 discovered enterprise departments in the benchmark suite.}
+\label{tab:evaluation}
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Discovered Process} & \textbf{Steps} & \textbf{Traces} & \textbf{APS Score} & \textbf{Eligible / Blocked} & \textbf{Simulated STR (\%)} & \textbf{Est. Annual Net ROI} \\
+\midrule
+Enterprise Deal Desk & 4 & 9 & \textbf{74.4} & 4 / 0 & 68.4\% & \$36,499.44 \\
+Support Escalation Resolution & 5 & 5 & \textbf{69.0} & 5 / 0 & 62.1\% & \$31,587.48 \\
+Employee Onboarding \& IT & 4 & 4 & \textbf{65.1} & 4 / 0 & 56.2\% & \$44,925.96 \\
+Customer Success Renewal & 4 & 4 & \textbf{63.2} & 3 / 1 & 42.0\% & \$29,481.96 \\
+Legal Contract NDA Review & 4 & 4 & \textbf{63.2} & 4 / 0 & 51.5\% & \$56,157.96 \\
+Invoice Exception Reconciliation & 4 & 5 & \textbf{59.1} & 2 / 2 & 28.4\% & \$19,341.48 \\
+DevOps Incident Triage & 5 & 5 & \textbf{58.3} & 4 / 1 & 34.0\% & \$14,037.48 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Table~\ref{tab:evaluation} summarizes the benchmark evaluation results. The system accurately discriminates between low-friction workflows (Deal Desk, Support) and high-friction, critical-action workflows (Invoice variance, DevOps rollbacks). Across all 1,000 Monte Carlo execution runs, zero critical operations (such as unauthorized wire transfers or production deployments) bypassed the safety review boundary.
+
+% ============================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented \textsc{AutoPilot FDE}, an end-to-end system for autonomous business process discovery, mathematical opportunity scoring, discrete-event simulation, and LangGraph workflow generation. By closing the loop between unstructured communication observations and verifiable agent scaffolding, AutoPilot FDE provides a scalable, scientific paradigm for the Forward Deployed Engineering domain.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}

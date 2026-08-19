@@ -1,0 +1,46 @@
+Functional Source License, Version 1.1, Apache 2.0 Change License
+(FSL-1.1-Apache-2.0)
+
+Copyright (c) 2026 Soumya Deb Nath (admin@otaitech.com)
+All rights reserved.
+
+1. Grant of License.
+Subject to the terms and conditions of this License, the Licensor hereby grants 
+to any person obtaining a copy of this software and associated documentation files 
+(the "Software"), free of charge, the non-exclusive, non-transferable, worldwide 
+license to use, copy, modify, merge, and distribute the Software, subject to the 
+Use Limitation specified below.
+
+2. Use Limitation.
+You may not use the Software in production as a commercial service, platform, 
+or product, nor may you incorporate the Software into any commercial SaaS product, 
+enterprise forward-deployed service, or hosted API platform offered to third parties 
+for a fee, WITHOUT obtaining an explicit commercial license agreement from the Licensor 
+(Soumya Deb Nath / OTAi Tech: admin@otaitech.com).
+
+Non-commercial use, academic research, internal evaluation, testing, educational 
+purposes, and contributions to the open-source repository are fully permitted under 
+this license free of charge, PROVIDED THAT attribution to the original author 
+(Soumya Deb Nath) and the original repository link are prominently maintained.
+
+3. Change to Open Source License.
+On the second (2nd) anniversary of the date the Software is first published or made 
+available by Licensor, this License shall automatically convert and grant rights under 
+the terms of the Apache License, Version 2.0.
+
+4. Attribution & Notice.
+The above copyright notice and this permission notice must be included in all copies 
+or substantial portions of the Software. Any derivative work, scientific paper, or 
+benchmark utilizing this Software must explicitly cite:
+"AutoPilot FDE & HostShift: Created by Soumya Deb Nath (admin@otaitech.com)"
+
+5. Disclaimer of Warranties.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A 
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+For enterprise commercial licensing, custom deployments, or consulting inquiries:
+Contact: admin@otaitech.com
