@@ -120,9 +120,11 @@ Empirical results across 158 multi-turn interactions evaluated by `scripts/test_
 ## ✅ Verified Functionality & Roadmap
 
 ### 🟢 What Has Been Tested & Fully Verified (100% Passing)
-- [x] **HostShift CI Suite**: 142/142 unit tests passed in 1.01s (`scripts/ci_validate.py`).
-- [x] **HostShift Task Suite**: 100/100 reference specs parsed across 8 UI categories.
-- [x] **AutoPilot FDE Test Suite**: 8/8 unit tests passed in 0.27s (`tests/`).
+- [x] **AutoPilot FDE Test Suite**: 19/19 tests passed (`PYTHONPATH=. pytest tests/ -v`) —
+  covering the discovery→score→deploy lifecycle, the approval boundary, webhook
+  signature verification, and credential-free API responses.
+- [x] *HostShift* (a separate repository at `itsoumya-d/hostshift`) has its own
+  198-assertion suite; it is not tested from this repo.
 - [x] **Bayesian Activity Extraction**: 30+ multi-pattern rules across 8 enterprise departments with dynamic confidence (0.85–0.98).
 - [x] **Graph Entropy Computation**: $H_{\text{trans}}$ calculation across state transitions.
 - [x] **Step Action Safety Classifier**: 5 discrete risk tiers (`READ_ONLY`, `DRAFT_ONLY`, `INTERNAL_ACTION`, `EXTERNAL_WRITE`, `CRITICAL_TRANSACTION`).
@@ -163,11 +165,8 @@ npm run dev
 
 ### 3. Run Test Suites
 ```bash
-# AutoPilot FDE Test Suite (8 tests)
+# AutoPilot FDE Test Suite
 PYTHONPATH=. pytest tests/ -v
-
-# HostShift CI Validation (142 tests)
-cd .. && python scripts/ci_validate.py
 ```
 
 ---
@@ -181,4 +180,4 @@ This software is licensed under the **Functional Source License, Version 1.1 (FS
 * **Conversion**: Converts automatically to standard Apache 2.0 on the 2nd anniversary of initial publication.
 
 **For enterprise commercial licensing, custom agent development, or consulting:**  
-📧 Contact: **Soumya Deb Nath** — `admin@otaitech.com`
+📧 Contact: **Soumya Debnath** — `admin@otaitech.com`
