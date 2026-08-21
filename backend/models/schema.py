@@ -1,10 +1,10 @@
 """Unified schema for AutoPilot FDE — satisfies backend API, ML engine, simulation, and code generation."""
 
-from datetime import datetime, timezone
-from typing import Dict, List, Optional, Any
-from pydantic import BaseModel, Field
+from datetime import UTC, datetime
 from enum import Enum
+from typing import Any
 
+from pydantic import BaseModel, Field
 
 # ── Channel types ──────────────────────────────────────────────────────────
 
@@ -26,9 +26,9 @@ class Channel(BaseModel):
     type: ChannelType
     name: str = "Unnamed channel"
     # Server-side only. Never serialized through ChannelPublic responses.
-    credentials: Dict[str, str] = Field(default_factory=dict, exclude=True)
+    credentials: dict[str, str] = Field(default_factory=dict, exclude=True)
     status: ChannelStatus = ChannelStatus.ACTIVE
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     message_count: int = 0
 
 
@@ -59,8 +59,8 @@ class Message(BaseModel):
     sender: str
     content: str
     timestamp: datetime
-    thread_id: Optional[str] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    thread_id: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 # ── Activity ───────────────────────────────────────────────────────────────
@@ -70,9 +70,9 @@ class Activity(BaseModel):
     name: str
     category: str
     case_id: str = ""
-    actors: List[str] = Field(default_factory=list)
+    actors: list[str] = Field(default_factory=list)
     timestamp: datetime
-    source_messages: List[str] = Field(default_factory=list)
+    source_messages: list[str] = Field(default_factory=list)
     evidence: str = ""
     confidence: float = 1.0
 
@@ -103,13 +103,13 @@ class Process(BaseModel):
     name: str
     description: str = ""
     category: str = "general"
-    activities: List[Activity] = Field(default_factory=list)
-    edges: List[ProcessEdge] = Field(default_factory=list)
+    activities: list[Activity] = Field(default_factory=list)
+    edges: list[ProcessEdge] = Field(default_factory=list)
     metrics: ProcessMetrics = Field(default_factory=ProcessMetrics)
     volume: int = 0
     avg_duration: float = 0.0
-    evidence_case_ids: List[str] = Field(default_factory=list)
-    safety_notes: List[str] = Field(default_factory=list)
+    evidence_case_ids: list[str] = Field(default_factory=list)
+    safety_notes: list[str] = Field(default_factory=list)
 
 
 # ── Step Feasibility & Safety ──────────────────────────────────────────────
@@ -128,7 +128,7 @@ class StepFeasibility(BaseModel):
     feasibility_score: float        # 0.0 to 1.0
     is_automatable: bool
     requires_approval: bool
-    risk_factors: List[str] = Field(default_factory=list)
+    risk_factors: list[str] = Field(default_factory=list)
 
 
 # ── Scoring ────────────────────────────────────────────────────────────────
@@ -146,12 +146,12 @@ class APScore(BaseModel):
     value_score: float = 0.0
     feasibility_score: float = 0.0
     evidence_confidence: float = 0.0
-    factors: Dict[str, float] = Field(default_factory=dict)
+    factors: dict[str, float] = Field(default_factory=dict)
     recommendation: str = ""
     recommended_mode: SafetyStatus = SafetyStatus.OBSERVATION_ONLY
-    eligible_steps: List[str] = Field(default_factory=list)
-    blocked_steps: List[str] = Field(default_factory=list)
-    step_feasibilities: List[StepFeasibility] = Field(default_factory=list)
+    eligible_steps: list[str] = Field(default_factory=list)
+    blocked_steps: list[str] = Field(default_factory=list)
+    step_feasibilities: list[StepFeasibility] = Field(default_factory=list)
     deployable_pct: float = 0.0
     estimated_hours_saved_monthly: float = 0.0
     estimated_monthly_roi_dollars: float = 0.0
@@ -165,7 +165,7 @@ class Recommendation(BaseModel):
     estimated_hours_saved: float = 0.0
     estimated_annual_roi_dollars: float = 0.0
     risk_level: str = "Low"
-    missing_capabilities: List[str] = Field(default_factory=list)
+    missing_capabilities: list[str] = Field(default_factory=list)
 
 
 # ── Simulation ─────────────────────────────────────────────────────────────
@@ -196,7 +196,7 @@ class DeploymentMode(str, Enum):
 class DeploymentConfig(BaseModel):
     mode: DeploymentMode = DeploymentMode.DRAFT
     traffic_percentage: float = Field(default=100.0, ge=0.0, le=100.0)
-    enabled_steps: List[str] = Field(default_factory=list)
+    enabled_steps: list[str] = Field(default_factory=list)
     approval_required: bool = True
     confidence_threshold: float = Field(default=0.8, ge=0.5, le=0.99)
 
@@ -214,9 +214,9 @@ class GeneratedAgentCode(BaseModel):
     process_id: str
     agent_name: str
     python_code: str
-    tools: List[str]
+    tools: list[str]
     entrypoint: str
-    langgraph_spec: Dict[str, Any] = Field(default_factory=dict)
+    langgraph_spec: dict[str, Any] = Field(default_factory=dict)
 
 
 class AgentBranch(BaseModel):
@@ -225,9 +225,9 @@ class AgentBranch(BaseModel):
     name: str
     status: AgentStatus = AgentStatus.PENDING_APPROVAL
     config: DeploymentConfig = Field(default_factory=DeploymentConfig)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    metrics: Dict[str, Any] = Field(default_factory=dict)
-    generated_code: Optional[GeneratedAgentCode] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    metrics: dict[str, Any] = Field(default_factory=dict)
+    generated_code: GeneratedAgentCode | None = None
 
 
 class DashboardSummary(BaseModel):

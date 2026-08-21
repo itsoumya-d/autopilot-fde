@@ -14,6 +14,7 @@ from .demo_data import demo_channel, demo_messages
 from .discovery.activity_extractor import ActivityExtractor
 from .discovery.process_miner import ProcessMiner
 from .llm.enhancer import get_enhancer
+from .models.schema import Activity, APScore, Process
 from .scoring.aps_engine import APSEngine
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ async def ensure_demo_workspace() -> None:
     await database.create_messages(demo_messages())
 
 
-def _discover_sync(messages) -> tuple[int, int]:
+def _discover_sync(messages) -> tuple[list[Activity], list[Process], list[APScore]]:
     """The CPU-bound pipeline, executed off the event loop."""
     activities = ActivityExtractor().extract(messages)
     processes = ProcessMiner().mine(activities)

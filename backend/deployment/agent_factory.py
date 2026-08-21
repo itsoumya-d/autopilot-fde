@@ -4,21 +4,25 @@ Translates discovered business processes into verifiable, typed Python LangGraph
 with Human-in-the-Loop review gates and OpenAPI endpoints.
 """
 
-from typing import Optional
 from uuid import uuid4
+
 from backend.models.schema import (
     AgentBranch,
     AgentStatus,
     DeploymentConfig,
     GeneratedAgentCode,
     Process,
-    StepActionType,
 )
 
 
 def _indent_join(lines: list[str], indent: str = "    ") -> str:
     """Join generated statements so every line keeps the caller's indentation."""
     return ("\n" + indent).join(lines)
+
+
+def _slugify(step_name: str) -> str:
+    """A Python-identifier-safe node slug for a step name."""
+    return "".join(c if c.isalnum() else "_" for c in step_name.lower()).strip("_")
 
 
 class AgentFactory:
@@ -28,7 +32,7 @@ class AgentFactory:
         self,
         process: Process,
         config: DeploymentConfig,
-        name: Optional[str] = None,
+        name: str | None = None,
     ) -> AgentBranch:
         agent_name = name or f"{process.name} Copilot"
         generated_code = self.generate_langgraph_code(process, config, agent_name)
@@ -58,7 +62,6 @@ class AgentFactory:
         agent_name: str,
     ) -> GeneratedAgentCode:
         """Generates runnable Python LangGraph workflow code with state schema and HITL checkpoints."""
-        clean_name = "".join(c for c in process.name if c.isalnum())
         tools: list[str] = []
         node_definitions: list[str] = []
         edge_connections: list[str] = []
@@ -66,11 +69,16 @@ class AgentFactory:
         step_names = [act.name for act in process.activities]
 
         for index, step in enumerate(step_names):
-            node_slug = "".join(c if c.isalnum() else "_" for c in step.lower()).strip("_")
+            node_slug = _slugify(step)
             is_deployed = step in config.enabled_steps if config.enabled_steps else True
 
             # Identify if step is critical / needs human signoff
-            is_hitl = config.approval_required and (index == len(step_names) - 1 or "confirm" in node_slug or "pay" in node_slug or "approval" in node_slug)
+            is_hitl = config.approval_required and (
+                index == len(step_names) - 1
+                or "confirm" in node_slug
+                or "pay" in node_slug
+                or "approval" in node_slug
+            )
 
             if is_deployed and not is_hitl:
                 node_code = f"""
@@ -99,12 +107,12 @@ def node_{node_slug}(state: WorkflowState) -> dict:
 
         # Build sequence edges
         for i in range(len(step_names) - 1):
-            curr_slug = "".join(c if c.isalnum() else "_" for c in step_names[i].lower()).strip("_")
-            next_slug = "".join(c if c.isalnum() else "_" for c in step_names[i+1].lower()).strip("_")
+            curr_slug = _slugify(step_names[i])
+            next_slug = _slugify(step_names[i + 1])
             edge_connections.append(f'workflow.add_edge("node_{curr_slug}", "node_{next_slug}")')
 
-        first_slug = "".join(c if c.isalnum() else "_" for c in step_names[0].lower()).strip("_") if step_names else "init"
-        last_slug = "".join(c if c.isalnum() else "_" for c in step_names[-1].lower()).strip("_") if step_names else "finish"
+        first_slug = _slugify(step_names[0]) if step_names else "init"
+        last_slug = _slugify(step_names[-1]) if step_names else "finish"
 
         full_code = f'''"""Autonomously generated LangGraph agent workflow for {process.name}."""
 
@@ -153,7 +161,7 @@ def build_agent_graph() -> StateGraph:
     workflow = StateGraph(WorkflowState)
 
     # Register nodes
-    {_indent_join([f'workflow.add_node("node_{"".join(c if c.isalnum() else "_" for c in s.lower()).strip("_")}", node_{"".join(c if c.isalnum() else "_" for c in s.lower()).strip("_")})' for s in step_names])}
+    {_indent_join([f'workflow.add_node("node_{_slugify(s)}", node_{_slugify(s)})' for s in step_names])}
 
     # Set entry point
     workflow.set_entry_point("node_{first_slug}")

@@ -9,11 +9,11 @@ credentials are configured.
 
 import logging
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List
+from datetime import UTC, datetime
+from typing import Any
 
-from .base import ChannelConnector
 from ..models.schema import ChannelType, Message
+from .base import ChannelConnector
 
 logger = logging.getLogger(__name__)
 
@@ -21,16 +21,16 @@ SUPPORTED_CONTENT_TYPES = {"text", "image", "document", "audio", "video", "stick
 
 
 def parse_webhook_payload(
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     expected_phone_number_id: str | None = None,
-) -> List[Message]:
+) -> list[Message]:
     """Parse an inbound WhatsApp Cloud API webhook payload into Messages.
 
     ``expected_phone_number_id`` filters entries to one WhatsApp business
     number when configured; when None, every entry is accepted so demo and
     multi-number setups still ingest.
     """
-    messages: List[Message] = []
+    messages: list[Message] = []
     for entry in payload.get("entry", []):
         for change in entry.get("changes", []):
             value = change.get("value", {})
@@ -43,10 +43,10 @@ def parse_webhook_payload(
             for msg in value.get("messages", []):
                 raw_ts = msg.get("timestamp")
                 try:
-                    timestamp = datetime.fromtimestamp(int(raw_ts), tz=timezone.utc)
+                    timestamp = datetime.fromtimestamp(int(raw_ts), tz=UTC)
                 except (TypeError, ValueError, OSError):
                     logger.warning("WhatsApp message %s had invalid timestamp %r", msg.get("id"), raw_ts)
-                    timestamp = datetime.now(timezone.utc)
+                    timestamp = datetime.now(UTC)
 
                 sender = msg.get("from") or "unknown"
                 msg_type = msg.get("type", "unknown")
@@ -69,7 +69,7 @@ def parse_webhook_payload(
 
 
 class WhatsAppConnector(ChannelConnector):
-    def __init__(self, config: Dict[str, str]):
+    def __init__(self, config: dict[str, str]):
         super().__init__(config)
         self.access_token = config.get("access_token")
         self.phone_number_id = config.get("phone_number_id")
@@ -99,7 +99,7 @@ class WhatsAppConnector(ChannelConnector):
     async def health_check(self) -> bool:
         return await self.connect()
 
-    async def fetch_messages(self, since: datetime) -> List[Message]:
+    async def fetch_messages(self, since: datetime) -> list[Message]:
         # WhatsApp Cloud API has no historical pull API: intake is push-only via
         # the registered webhook endpoint. History therefore accumulates in the
         # local store from the moment the webhook is connected.

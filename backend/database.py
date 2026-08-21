@@ -8,26 +8,22 @@ request path.
 
 import asyncio
 import json
+from collections.abc import Iterable
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable
 
 import aiosqlite
 
 from .models.schema import (
-    APScore,
-    Activity,
     AgentBranch,
     AgentStatus,
+    APScore,
     Channel,
     ChannelStatus,
     ChannelType,
     DashboardSummary,
-    DeploymentConfig,
     Message,
     Process,
-    ProcessEdge,
-    ProcessMetrics,
 )
 
 DB_PATH = Path(__file__).resolve().parent / "autopilot.db"
@@ -156,7 +152,8 @@ async def create_messages(messages: Iterable[Message]) -> None:
         return
     db = await _db()
     await db.executemany(
-        "INSERT OR IGNORE INTO messages (id, channel_id, sender, content, timestamp, thread_id, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT OR IGNORE INTO messages (id, channel_id, sender, content, timestamp, thread_id, metadata)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?)",
         rows,
     )
     await db.commit()

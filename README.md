@@ -120,17 +120,18 @@ Empirical results across 158 multi-turn interactions evaluated by `scripts/test_
 ## ✅ Verified Functionality & Roadmap
 
 ### 🟢 What Has Been Tested & Fully Verified (100% Passing)
-- [x] **AutoPilot FDE Test Suite**: 19/19 tests passed (`PYTHONPATH=. pytest tests/ -v`) —
+- [x] **AutoPilot FDE Test Suite**: 36/36 tests passed (`PYTHONPATH=. pytest tests/ -v`) —
   covering the discovery→score→deploy lifecycle, the approval boundary, webhook
-  signature verification, and credential-free API responses.
+  signature verification, credential-free API responses, APS keyword-classifier
+  fallbacks, Monte Carlo reproducibility, and WhatsApp payload parsing edge cases.
 - [x] *HostShift* (a separate repository at `itsoumya-d/hostshift`) has its own
   198-assertion suite; it is not tested from this repo.
 - [x] **Bayesian Activity Extraction**: 30+ multi-pattern rules across 8 enterprise departments with dynamic confidence (0.85–0.98).
 - [x] **Graph Entropy Computation**: $H_{\text{trans}}$ calculation across state transitions.
 - [x] **Step Action Safety Classifier**: 5 discrete risk tiers (`READ_ONLY`, `DRAFT_ONLY`, `INTERNAL_ACTION`, `EXTERNAL_WRITE`, `CRITICAL_TRANSACTION`).
-- [x] **Discrete-Event Monte Carlo Simulator**: 1,000 runs per workflow forecasting Straight-Through Rates (STR) and bottleneck steps.
+- [x] **Discrete-Event Monte Carlo Simulator**: 1,000 runs per workflow forecasting Straight-Through Rates (STR) and bottleneck steps; seed-reproducible.
 - [x] **Autonomous LangGraph Generator**: Emits runnable, typed Python state machines with `request_human_approval` checkpoints.
-- [x] **Next.js 15.5 Frontend**: 9/9 static routes compiled with React Flow, dark theme, and zero warnings.
+- [x] **Next.js 15.5 Frontend**: 9/9 static routes compiled with React Flow, dark theme, ESLint-clean, zero type errors.
 
 ### 🟡 Upcoming Roadmap (Features Left to Check)
 - [ ] **Multi-Modal Video & Audio Stream Extraction**: Ingestion of recorded Zoom/Teams meeting transcripts via Whisper & Vision LLMs.
@@ -165,8 +166,14 @@ npm run dev
 
 ### 3. Run Test Suites
 ```bash
-# AutoPilot FDE Test Suite
+# AutoPilot FDE Test Suite (36 assertions)
 PYTHONPATH=. pytest tests/ -v
+
+# Lint (backend + scripts)
+ruff check backend/ tests/ scripts/
+
+# Frontend gates
+cd frontend && npm run lint && npx tsc --noEmit && npm run build
 ```
 
 ---

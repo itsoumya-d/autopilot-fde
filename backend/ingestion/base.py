@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any
 from datetime import datetime
-from ..models.schema import Message, ChannelType
+
+from ..models.schema import ChannelType, Message
+
 
 class ChannelConnector(ABC):
-    def __init__(self, config: Dict[str, str]):
+    def __init__(self, config: dict[str, str]):
         self.config = config
 
     @abstractmethod
@@ -13,7 +14,7 @@ class ChannelConnector(ABC):
         pass
 
     @abstractmethod
-    async def fetch_messages(self, since: datetime) -> List[Message]:
+    async def fetch_messages(self, since: datetime) -> list[Message]:
         """Fetch messages since the given timestamp."""
         pass
 
@@ -21,7 +22,7 @@ class ChannelConnector(ABC):
     async def health_check(self) -> bool:
         """Check if the connection is healthy."""
         pass
-    
+
     @property
     @abstractmethod
     def channel_type(self) -> ChannelType:

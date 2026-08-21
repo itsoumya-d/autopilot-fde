@@ -7,7 +7,6 @@ the structural approval boundary (AUTONOMOUS is unreachable)."""
 
 import hashlib
 import hmac
-import io
 import os
 import pathlib
 import sys

@@ -8,24 +8,26 @@ class Recommender:
 
     def recommend(self, processes: list[Process], scores: list[APScore]) -> list[Recommendation]:
         process_map = {process.id: process for process in processes}
-        
+
         # Rank by Economic Impact: (APS Score / 100) * Estimated Monthly ROI Dollars
         ranked = sorted(
             scores,
             key=lambda s: (s.score / 100.0) * max(100.0, s.estimated_monthly_roi_dollars),
             reverse=True,
         )
-        
+
         recommendations: list[Recommendation] = []
         for index, score in enumerate(ranked, start=1):
             process = process_map.get(score.process_id)
             process_name = process.name if process else "Discovered Workflow"
-            
+
             missing: list[str] = []
             if score.evidence_confidence < 75.0:
                 missing.append("Accumulate more thread observations to cross the 75% confidence threshold.")
             if score.blocked_steps:
-                missing.append(f"Deploy approval gate for {len(score.blocked_steps)} high-risk step(s): {', '.join(score.blocked_steps[:2])}.")
+                blocked_preview = ", ".join(score.blocked_steps[:2])
+                missing.append(
+                    f"Deploy approval gate for {len(score.blocked_steps)} high-risk step(s): {blocked_preview}.")
             if score.factors.get("Graph Complexity (Inverse)", 100.0) < 50.0:
                 missing.append("Standardize input payloads to reduce graph branching entropy.")
 

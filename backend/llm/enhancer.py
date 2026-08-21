@@ -11,7 +11,7 @@ degrades to exactly its pre-LLM behavior, never to an error page.
 
 import logging
 import os
-from typing import Any, Dict, List, Protocol
+from typing import Any, Protocol
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ _ENHANCE_TIMEOUT_SECONDS = 12.0
 
 
 class LLMEnhancer(Protocol):
-    def enhance_process(self, process: Dict[str, Any]) -> Dict[str, Any]:
+    def enhance_process(self, process: dict[str, Any]) -> dict[str, Any]:
         """Returns the process dict, optionally enriched. Must never raise."""
         ...
 
@@ -27,7 +27,7 @@ class LLMEnhancer(Protocol):
 class RuleBasedEnhancer:
     """Deterministic fallback: composes summaries from signals already computed."""
 
-    def enhance_process(self, process: Dict[str, Any]) -> Dict[str, Any]:
+    def enhance_process(self, process: dict[str, Any]) -> dict[str, Any]:
         steps = [activity.get("name", "") for activity in process.get("activities", [])]
         metrics = process.get("metrics", {})
         summary = (
@@ -52,7 +52,7 @@ class HttpxLLMEnhancer:
         self.base_url = base_url.rstrip("/")
         self.model = model
 
-    def _prompt(self, process: Dict[str, Any]) -> str:
+    def _prompt(self, process: dict[str, Any]) -> str:
         steps = [activity.get("name", "") for activity in process.get("activities", [])]
         metrics = process.get("metrics", {})
         return (
@@ -85,7 +85,7 @@ class HttpxLLMEnhancer:
             logger.warning("LLM enhancement unavailable (%s); using rule-based summary.", type(error).__name__)
             return None
 
-    def enhance_process(self, process: Dict[str, Any]) -> Dict[str, Any]:
+    def enhance_process(self, process: dict[str, Any]) -> dict[str, Any]:
         content = self._call(self._prompt(process))
         if not content:
             return RuleBasedEnhancer().enhance_process(process)
@@ -99,7 +99,7 @@ class HttpxLLMEnhancer:
         return enriched
 
 
-def _extract_json(text: str) -> Dict[str, Any] | None:
+def _extract_json(text: str) -> dict[str, Any] | None:
     """Pulls the first JSON object out of an LLM reply (handles ```json fences)."""
     import json
 
@@ -125,7 +125,7 @@ def get_enhancer() -> LLMEnhancer:
     return HttpxLLMEnhancer(api_key=api_key, base_url=base_url, model=model)
 
 
-def enhance_processes(processes: List[Any]) -> None:
+def enhance_processes(processes: list[Any]) -> None:
     """Best-effort enrichment of mined Process models before persistence."""
     enhancer = get_enhancer()
     for process in processes:

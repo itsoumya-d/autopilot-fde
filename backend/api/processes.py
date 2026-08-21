@@ -1,8 +1,8 @@
-from ..security import require_api_key
 from fastapi import APIRouter, Depends, HTTPException
 
 from .. import database
 from ..models.schema import Process
+from ..security import require_api_key
 from ..services import run_discovery
 
 router = APIRouter()
@@ -16,7 +16,8 @@ async def list_processes() -> list[Process]:
 @router.post("/discover", dependencies=[Depends(require_api_key)])
 async def trigger_discovery() -> dict[str, int | str]:
     processes, activities = await run_discovery()
-    return {"message": "Discovery completed from read-only observations", "processes": processes, "activities": activities}
+    return {"message": "Discovery completed from read-only observations",
+            "processes": processes, "activities": activities}
 
 
 @router.get("/{process_id}", response_model=Process)
@@ -29,7 +30,9 @@ async def get_process(process_id: str) -> Process:
 
 @router.get("/{process_id}/timeline")
 async def process_timeline(process_id: str) -> list[dict[str, object]]:
-    process = await get_process(process_id)
+    process = await database.get_process(process_id)
+    if not process:
+        raise HTTPException(status_code=404, detail="Process not found")
     return [
         {
             "activity_id": activity.id,

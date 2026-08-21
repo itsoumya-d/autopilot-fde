@@ -1,0 +1,19 @@
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = [
+    "B905",  # zip() strictness adds nothing in these local, equal-length uses
+    "UP042", # (str, Enum) is deliberate: pydantic v2 serializes it identically to StrEnum
+]
+
+[tool.ruff.lint.per-file-ignores]
+"backend/demo_data.py" = ["E501"]  # fixture message content mirrors real stream lines
+"scripts/*" = ["E402", "E501"]     # path bootstrap before imports; long fixture strings
+"tests/*" = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

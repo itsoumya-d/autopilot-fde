@@ -1,6 +1,6 @@
 """Deployment API with a deliberate human approval boundary."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -53,14 +53,17 @@ async def deploy_agent(request: DeployAgentRequest) -> AgentBranch:
         request.config.enabled_steps = score.eligible_steps[:1]
     invalid = set(request.config.enabled_steps) - set(score.eligible_steps)
     if invalid:
-        raise HTTPException(status_code=422, detail=f"These steps are not eligible for draft automation: {', '.join(sorted(invalid))}")
+        raise HTTPException(
+            status_code=422,
+            detail=f"These steps are not eligible for draft automation: {', '.join(sorted(invalid))}",
+        )
     agent = AgentBranch(
         id=f"agent-{uuid4().hex[:10]}",
         process_id=request.process_id,
         name=request.name,
         status=AgentStatus.PENDING_APPROVAL,
         config=request.config,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         metrics={"drafts_created": 0, "human_approval_rate": None, "external_actions": 0},
     )
     # Generate the LangGraph program at deploy time and prove it parses before

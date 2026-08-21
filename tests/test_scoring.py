@@ -1,11 +1,11 @@
 from backend.demo_data import demo_messages
+from backend.deployment.agent_factory import AgentFactory
 from backend.discovery.activity_extractor import ActivityExtractor
 from backend.discovery.process_miner import ProcessMiner
+from backend.models.schema import DeploymentConfig, SafetyStatus
 from backend.scoring.aps_engine import APSEngine
 from backend.scoring.recommender import Recommender
 from backend.scoring.simulator import ProcessSimulator
-from backend.deployment.agent_factory import AgentFactory
-from backend.models.schema import DeploymentConfig, SafetyStatus
 
 
 def _scored_processes():

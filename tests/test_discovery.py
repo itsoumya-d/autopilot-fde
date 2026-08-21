@@ -17,7 +17,7 @@ def test_miner_discovers_repeated_workflows_from_threads():
     activities = ActivityExtractor().extract(demo_messages())
     processes = ProcessMiner().mine(activities)
     discovered_names = {process.name for process in processes}
-    
+
     assert len(processes) >= 5
     assert "DevOps Incident Response & Triage" in discovered_names
     assert "Support Escalation Resolution" in discovered_names

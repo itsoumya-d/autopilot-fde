@@ -21,8 +21,11 @@ class APSEngine:
         # DevOps
         "Alert triggered": (StepActionType.READ_ONLY, 0.98, False, ["Automated ingestion & normalization"]),
         "Incident triaged": (StepActionType.READ_ONLY, 0.90, False, ["Log parsing & telemetry correlation"]),
-        "Engineer assigned": (StepActionType.INTERNAL_ACTION, 0.85, False, ["On-call schedule lookup & Jira assignment"]),
-        "Mitigation deployed": (StepActionType.CRITICAL_TRANSACTION, 0.20, True, ["High risk: Production rollback requires SRE signoff"]),
+        "Engineer assigned": (
+            StepActionType.INTERNAL_ACTION, 0.85, False, ["On-call schedule lookup & Jira assignment"]),
+        "Mitigation deployed": (
+            StepActionType.CRITICAL_TRANSACTION, 0.20, True,
+            ["High risk: Production rollback requires SRE signoff"]),
         "Post-mortem scheduled": (StepActionType.DRAFT_ONLY, 0.92, False, ["Summary generation & calendar dispatch"]),
 
         # Support
@@ -37,7 +40,8 @@ class APSEngine:
         "Margin analysis completed": (StepActionType.READ_ONLY, 0.92, False, ["Margin calculator & unit economics"]),
         "Executive approval requested": (StepActionType.INTERNAL_ACTION, 0.80, True, ["VP Sales approval routing"]),
         "Quote schedule drafted": (StepActionType.DRAFT_ONLY, 0.88, True, ["DocuSign quote generation"]),
-        "Contract sent for execution": (StepActionType.EXTERNAL_WRITE, 0.40, True, ["Legal dispatch approval required"]),
+        "Contract sent for execution": (
+            StepActionType.EXTERNAL_WRITE, 0.40, True, ["Legal dispatch approval required"]),
 
         # Inbound SDR
         "Lead captured": (StepActionType.READ_ONLY, 0.98, False, ["Form intake & enrich via Clearbit"]),
@@ -49,7 +53,8 @@ class APSEngine:
         "Invoice exception received": (StepActionType.READ_ONLY, 0.95, False, ["OCR parsing & PO matching"]),
         "Invoice reconciled": (StepActionType.INTERNAL_ACTION, 0.85, False, ["ERP line item cross-checking"]),
         "Payment approval requested": (StepActionType.INTERNAL_ACTION, 0.65, True, ["Controller approval gate"]),
-        "Payment confirmed": (StepActionType.CRITICAL_TRANSACTION, 0.15, True, ["Direct wire transfer: Zero automation"]),
+        "Payment confirmed": (
+            StepActionType.CRITICAL_TRANSACTION, 0.15, True, ["Direct wire transfer: Zero automation"]),
 
         # HR
         "Offer accepted": (StepActionType.READ_ONLY, 0.98, False, ["Applicant tracking event sync"]),
@@ -58,9 +63,13 @@ class APSEngine:
         "Onboarding scheduled": (StepActionType.DRAFT_ONLY, 0.92, False, ["Welcome email & calendar series"]),
 
         # Legal
-        "Contract received for review": (StepActionType.READ_ONLY, 0.98, False, ["PDF parsing & NDA classification"]),
-        "Contract redlined": (StepActionType.DRAFT_ONLY, 0.82, True, ["Clause diffing against company standard playbook"]),
-        "Revised terms drafted": (StepActionType.DRAFT_ONLY, 0.85, True, ["Redline summary for General Counsel"]),
+        "Contract received for review": (
+            StepActionType.READ_ONLY, 0.98, False, ["PDF parsing & NDA classification"]),
+        "Contract redlined": (
+            StepActionType.DRAFT_ONLY, 0.82, True,
+            ["Clause diffing against company standard playbook"]),
+        "Revised terms drafted": (
+            StepActionType.DRAFT_ONLY, 0.85, True, ["Redline summary for General Counsel"]),
         "Execution copy finalized": (StepActionType.INTERNAL_ACTION, 0.70, True, ["DocuSign package assembly"]),
 
         # CS
@@ -72,12 +81,12 @@ class APSEngine:
 
     def score(self, process: Process) -> APScore:
         metrics = process.metrics
-        
+
         # 1. Step-Level Feasibilities
         step_feasibilities = self._evaluate_steps(process)
         eligible_steps = [s.step_name for s in step_feasibilities if s.is_automatable]
         blocked_steps = [s.step_name for s in step_feasibilities if not s.is_automatable]
-        
+
         avg_step_feasibility = (
             sum(s.feasibility_score for s in step_feasibilities) / len(step_feasibilities)
             if step_feasibilities else 0.5
@@ -86,19 +95,19 @@ class APSEngine:
         # 2. Mathematical Factors
         # Repeatability from trace pattern consistency
         repeatability = metrics.pattern_consistency
-        
+
         # Structuredness from step count and data completeness
         structuredness = min(1.0, len(process.activities) / 5.0) * 0.60 + 0.40
-        
+
         # Volume factor normalized against enterprise baseline (e.g. 40 runs/month)
         volume_norm = min(1.0, metrics.volume_per_month / 40.0)
-        
+
         # Data availability
         data_availability = 0.95
-        
+
         # Mathematical Graph Complexity C(p)
         complexity = self._compute_graph_complexity(process, step_feasibilities)
-        
+
         # Evidence confidence dampening
         evidence = min(0.98, 0.40 + 0.10 * metrics.trace_count + 0.02 * metrics.evidence_count)
 
@@ -106,7 +115,7 @@ class APSEngine:
         # Value = Volume (45%) + Time Duration (35%) + Repeatability (20%)
         duration_factor = min(1.0, metrics.avg_completion_minutes / 180.0)
         value = 0.45 * volume_norm + 0.35 * duration_factor + 0.20 * repeatability
-        
+
         # Feasibility = Step Feasibility (50%) + Data (30%) + Low Complexity (20%)
         feasibility = 0.50 * avg_step_feasibility + 0.30 * data_availability + 0.20 * (1.0 - complexity)
 
@@ -115,7 +124,8 @@ class APSEngine:
         opportunity = round(min(98.5, max(15.0, raw_opportunity)), 1)
 
         # 4. Economic ROI Modeling ($65/hr knowledge worker baseline, $0.000003 per token)
-        deployable_pct = round((len(eligible_steps) / len(process.activities)) * 100.0 if process.activities else 0.0, 1)
+        deployable_pct = round(
+            (len(eligible_steps) / len(process.activities)) * 100.0 if process.activities else 0.0, 1)
         hours_saved_monthly = round(
             metrics.volume_per_month * (metrics.avg_completion_minutes / 60.0) * (deployable_pct / 100.0) * 0.45, 1
         )
@@ -200,12 +210,12 @@ class APSEngine:
         """Graph complexity derived from transition entropy, actor dispersion, and critical step penalty."""
         # Graph Shannon Entropy (normalized 0 - 1)
         entropy_norm = min(1.0, process.metrics.entropy_score / 3.0)
-        
+
         # Actor handoff dispersion (more unique actors = higher cross-team friction)
         actor_count = max(1, process.metrics.unique_actors_count)
         step_count = max(1, len(process.activities))
         actor_friction = min(1.0, (actor_count - 1) / step_count)
-        
+
         # Critical action penalty
         critical_count = sum(1 for s in step_feasibilities if s.action_type == StepActionType.CRITICAL_TRANSACTION)
         critical_penalty = min(1.0, critical_count / step_count)
@@ -218,7 +228,11 @@ class APSEngine:
         if evidence < 0.70:
             return "Continue observing: evidence volume is accumulating before production authorization."
         if not eligible:
-            return "All steps involve critical or legally binding actions. Maintain workflow in 100% human-operated mode."
+            return (
+                "All steps involve critical or legally binding actions. "
+                "Maintain workflow in 100% human-operated mode.")
         if not blocked:
-            return f"High-confidence automation candidate ({score:.1f}/100). All {len(eligible)} step(s) are eligible for deployment."
-        return f"Deploy staged agent for {len(eligible)} eligible step(s) with HITL checkpoints. {len(blocked)} step(s) remain human-owned."
+            return (f"High-confidence automation candidate ({score:.1f}/100). "
+                    f"All {len(eligible)} step(s) are eligible for deployment.")
+        return (f"Deploy staged agent for {len(eligible)} eligible step(s) with HITL checkpoints. "
+                f"{len(blocked)} step(s) remain human-owned.")

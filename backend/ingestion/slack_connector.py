@@ -1,7 +1,7 @@
 """Read-only Slack history ingestion. Bot tokens are read from the environment only."""
 
-from datetime import datetime, timedelta, timezone
 import os
+from datetime import UTC, datetime, timedelta
 
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web.async_client import AsyncWebClient
@@ -25,7 +25,7 @@ async def sync_channel(slack_channel_id: str, channel_id: str | None = None) -> 
         normalized_channel_id = channel_id or f"slack:{slack_channel_id}"
         # A full initial pull is intentionally capped; pagination lets an operator run
         # repeated syncs without creating unbounded one-shot ingestion jobs.
-        oldest = str((datetime.now(timezone.utc) - timedelta(days=30)).timestamp())
+        oldest = str((datetime.now(UTC) - timedelta(days=30)).timestamp())
         response = await client.conversations_history(channel=slack_channel_id, oldest=oldest, limit=200)
         messages: list[Message] = []
         seen: set[str] = set()
@@ -43,7 +43,7 @@ async def sync_channel(slack_channel_id: str, channel_id: str | None = None) -> 
                 channel_id=normalized_channel_id,
                 sender=raw.get("user", "unknown"),
                 content=raw.get("text", ""),
-                timestamp=datetime.fromtimestamp(float(timestamp), tz=timezone.utc),
+                timestamp=datetime.fromtimestamp(float(timestamp), tz=UTC),
                 thread_id=raw.get("thread_ts") or parent_thread or timestamp,
                 metadata={"slack_ts": timestamp, "reactions": raw.get("reactions", []), "read_only": True},
             ))
@@ -52,7 +52,8 @@ async def sync_channel(slack_channel_id: str, channel_id: str | None = None) -> 
             normalize(item)
             root_thread = item.get("thread_ts") or item.get("ts")
             if item.get("reply_count", 0) > 0 and root_thread:
-                replies = await client.conversations_replies(channel=slack_channel_id, ts=root_thread, oldest=oldest, limit=200)
+                replies = await client.conversations_replies(
+                    channel=slack_channel_id, ts=root_thread, oldest=oldest, limit=200)
                 for reply in replies.get("messages", [])[1:]:
                     normalize(reply, root_thread)
         return messages

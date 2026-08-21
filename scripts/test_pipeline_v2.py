@@ -1,19 +1,18 @@
-import sys
 import os
+import sys
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from backend.demo_data import demo_messages
+from backend.deployment.agent_factory import AgentFactory
 from backend.discovery.activity_extractor import ActivityExtractor
 from backend.discovery.process_miner import ProcessMiner
-from backend.discovery.process_graph import BusinessProcessGraph
+from backend.models.schema import DeploymentConfig
 from backend.scoring.aps_engine import APSEngine
 from backend.scoring.recommender import Recommender
 from backend.scoring.simulator import ProcessSimulator
-from backend.deployment.agent_factory import AgentFactory
-from backend.models.schema import DeploymentConfig
 
 print("=" * 85)
 print("🚀 AUTOPILOT FDE 2.0 — CATEGORY-DEFINING PIPELINE STRESS TEST")
@@ -41,7 +40,7 @@ for p in processes:
 # 4. APS SCORING
 engine = APSEngine()
 scores = [engine.score(p) for p in processes]
-print(f"\n⚡ Step 4: Mathematical APS Opportunity Scoring & ROI Analysis:")
+print("\n⚡ Step 4: Mathematical APS Opportunity Scoring & ROI Analysis:")
 score_values = [s.score for s in scores]
 print(f"   Score Range: {min(score_values):.1f} to {max(score_values):.1f} (Spread: {max(score_values) - min(score_values):.1f} pts)")
 
@@ -56,7 +55,7 @@ for s, p in sorted(zip(scores, processes), key=lambda x: x[0].score, reverse=Tru
 # 5. RECOMMENDATIONS & WAVES
 recommender = Recommender()
 recs = recommender.recommend(processes, scores)
-print(f"\n🎯 Step 5: Prioritized Deployment Waves:")
+print("\n🎯 Step 5: Prioritized Deployment Waves:")
 for r in recs:
     print(f"   [Wave {r.wave:<5}] #{r.priority} {r.process_name} | Est. Annual ROI: ${r.estimated_annual_roi_dollars:,.2f} | Risk: {r.risk_level}")
     if r.missing_capabilities:
@@ -65,7 +64,7 @@ for r in recs:
 
 # 6. MONTE CARLO SIMULATION
 simulator = ProcessSimulator()
-print(f"\n🎲 Step 6: Pre-Deployment Monte Carlo Simulation (1,000 Runs/Process):")
+print("\n🎲 Step 6: Pre-Deployment Monte Carlo Simulation (1,000 Runs/Process):")
 for p, s in zip(processes[:3], scores[:3]):
     sim = simulator.simulate(p, s, runs=1000, confidence_threshold=0.80)
     print(f"\n   🔬 Simulation for {p.name}:")
@@ -78,7 +77,7 @@ for p, s in zip(processes[:3], scores[:3]):
 
 # 7. AUTONOMOUS LANGGRAPH CODE GENERATION
 factory = AgentFactory()
-print(f"\n🤖 Step 7: Autonomous LangGraph Agent Code Generation:")
+print("\n🤖 Step 7: Autonomous LangGraph Agent Code Generation:")
 top_process = processes[0]
 top_score = scores[0]
 agent = factory.create_agent(
@@ -87,7 +86,7 @@ agent = factory.create_agent(
 )
 print(f"   Generated Agent: {agent.name}")
 print(f"   LangGraph Specs: {agent.generated_code.langgraph_spec}")
-print(f"   Python Code Preview (First 25 lines):")
+print("   Python Code Preview (First 25 lines):")
 print("   " + "-" * 60)
 for line in agent.generated_code.python_code.splitlines()[:25]:
     print("   | " + line)

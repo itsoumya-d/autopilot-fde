@@ -5,9 +5,10 @@ estimating Straight-Through Rate (STR %), latency reductions, token consumption,
 """
 
 import random
+
 from backend.models.schema import (
-    Process,
     APScore,
+    Process,
     SimulationResult,
     StepActionType,
 )
@@ -100,9 +101,12 @@ class ProcessSimulator:
         )
 
         # Identify bottleneck step (step with highest remaining duration)
+        def _mean(values: list[float]) -> float:
+            return sum(values) / len(values) if values else 0.0
+
         bottleneck_step = max(
             step_durations_after.keys(),
-            key=lambda k: sum(step_durations_after[k]) / len(step_durations_after[k]) if step_durations_after[k] else 0.0,
+            key=lambda k: _mean(step_durations_after[k]),
             default="None",
         )
 

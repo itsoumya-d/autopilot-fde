@@ -3,15 +3,14 @@
 import math
 from collections import Counter, defaultdict
 from hashlib import sha1
-from typing import Optional
 
 from backend.models.schema import Activity, Process, ProcessEdge, ProcessMetrics
-
 
 PROCESS_CATALOG: dict[str, tuple[str, str, list[str]]] = {
     "devops": (
         "DevOps Incident Response & Triage",
-        "Orchestrates high-priority telemetry alerts from triage and engineer assignment to production rollback, verification, and post-mortem.",
+        "Orchestrates high-priority telemetry alerts from triage and engineer assignment to "
+        "production rollback, verification, and post-mortem.",
         [
             "Production deployments and rollbacks require verified SRE command execution.",
             "Post-mortem scheduling and status updates are draft-enabled with human review.",
@@ -19,7 +18,8 @@ PROCESS_CATALOG: dict[str, tuple[str, str, list[str]]] = {
     ),
     "support": (
         "Support Escalation Resolution",
-        "Turns critical customer bug reports and system blockers into triaged tickets, engineering handoffs, and verified resolutions.",
+        "Turns critical customer bug reports and system blockers into triaged tickets, engineering handoffs, "
+        "and verified resolutions.",
         [
             "Source tickets and Slack messages are strictly read-only with evidence attribution.",
             "Customer-facing communication remains draft-only until approved by CSM.",
@@ -27,7 +27,8 @@ PROCESS_CATALOG: dict[str, tuple[str, str, list[str]]] = {
     ),
     "sales": (
         "Enterprise Deal Desk & Inbound Lead Routing",
-        "Discovers the sales pipeline from inbound demo requests to discount approvals, margin reviews, and DocuSign contract dispatches.",
+        "Discovers the sales pipeline from inbound demo requests to discount approvals, margin reviews, "
+        "and DocuSign contract dispatches.",
         [
             "Discount authority and custom terms require designated VP/CFO approval gates.",
             "CRM updates and calendar invites are eligible for automated staging.",
@@ -43,7 +44,8 @@ PROCESS_CATALOG: dict[str, tuple[str, str, list[str]]] = {
     ),
     "hr": (
         "Employee Onboarding & IT Provisioning",
-        "Manages new hire offer acceptance, background checks, hardware provisioning requests, and calendar onboarding setup.",
+        "Manages new hire offer acceptance, background checks, hardware provisioning requests, "
+        "and calendar onboarding setup.",
         [
             "Sensitive PII and background check records are masked from LLM context windows.",
             "Okta profile creation and welcome emails can be safely staged for HR approval.",
@@ -51,7 +53,8 @@ PROCESS_CATALOG: dict[str, tuple[str, str, list[str]]] = {
     ),
     "legal": (
         "Legal Contract Review & NDA Redlining",
-        "Analyzes inbound third-party NDAs, cross-checks standard fallback clauses, redlines liability caps, and prepares execution copies.",
+        "Analyzes inbound third-party NDAs, cross-checks standard fallback clauses, redlines liability caps, "
+        "and prepares execution copies.",
         [
             "Legal advice and binding contract signatures are strictly reserved for General Counsel.",
             "Clause diffing and fallback clause insertion can be 90% automated in draft mode.",
@@ -59,7 +62,8 @@ PROCESS_CATALOG: dict[str, tuple[str, str, list[str]]] = {
     ),
     "cs": (
         "Customer Success Renewal Triage",
-        "Identifies 90-day expiring enterprise accounts, aggregates product usage telemetry, and drafts expansion proposals.",
+        "Identifies 90-day expiring enterprise accounts, aggregates product usage telemetry, "
+        "and drafts expansion proposals.",
         [
             "Client negotiation meetings and commercial commitments require CSM leadership signoff.",
             "Telemetry compilation and proposal deck drafting are high-value automation targets.",
@@ -92,7 +96,7 @@ class ProcessMiner:
             if len(traces) < self.MINIMUM_TRACES:
                 continue
             discovered.append(self._build_process(category, traces))
-            
+
         return sorted(discovered, key=lambda process: process.name)
 
     def _build_process(self, category: str, traces: list[tuple[str, list[Activity]]]) -> Process:
@@ -105,7 +109,7 @@ class ProcessMiner:
 
         signatures = Counter(tuple(activity.name for activity in trace) for _, trace in traces)
         dominant_signature, dominant_count = signatures.most_common(1)[0]
-        
+
         # Select representative trace matching dominant signature
         representative = next(
             trace for _, trace in traces if tuple(activity.name for activity in trace) == dominant_signature

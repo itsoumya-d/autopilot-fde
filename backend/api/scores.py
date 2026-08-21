@@ -1,12 +1,12 @@
-from ..security import require_api_key
-from fastapi import APIRouter, Depends, HTTPException, Query
-
 import asyncio
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from .. import database
 from ..models.schema import APScore, Recommendation, SimulationResult
 from ..scoring.recommender import Recommender
 from ..scoring.simulator import ProcessSimulator
+from ..security import require_api_key
 from ..services import run_discovery
 
 router = APIRouter()
@@ -47,7 +47,7 @@ async def simulate_process(
     score = await database.get_score(process_id)
     if not process or not score:
         raise HTTPException(status_code=404, detail="Process or score not found for simulation")
-    
+
     simulator = ProcessSimulator()
     # The Monte Carlo loop is CPU-bound pure Python; offload it so the event
     # loop keeps serving other requests while 10k runs execute.

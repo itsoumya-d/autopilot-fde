@@ -29,7 +29,7 @@ export default function Processes() {
   const selectedScore = selected ? scoreFor(selected.id) : undefined;
   const nodes = useMemo(() => processes.map((process, index) => ({
     id: process.id, type: 'processNode', position: { x: 70 + (index % 2) * 310, y: 70 + Math.floor(index / 2) * 180 },
-    data: { label: process.name, score: scoreFor(process.id)?.score || 0, traces: process.metrics.trace_count },
+    data: { label: process.name, score: scores.find((score) => score.process_id === process.id)?.score || 0, traces: process.metrics.trace_count },
   })), [processes, scores]);
   const edges = useMemo(() => processes.slice(1).map((process, index) => ({ id: `map-${index}`, source: processes[index].id, target: process.id, animated: true, style: { stroke: '#155e75' } })), [processes]);
 

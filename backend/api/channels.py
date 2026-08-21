@@ -30,11 +30,15 @@ async def sync_slack(request: SlackSyncRequest) -> dict[str, int | str]:
     try:
         messages = await sync_channel(request.slack_channel_id, channel_id)
     except SlackConfigurationError as error:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(error)) from error
-    await database.upsert_channel(Channel(id=channel_id, type=ChannelType.SLACK, name=request.display_name, status=ChannelStatus.ACTIVE))
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(error)) from error
+    await database.upsert_channel(Channel(
+        id=channel_id, type=ChannelType.SLACK,
+        name=request.display_name, status=ChannelStatus.ACTIVE))
     await database.create_messages(messages)
     processes, activities = await run_discovery()
-    return {"message": "Read-only Slack sync completed", "messages_seen": len(messages), "processes": processes, "activities": activities}
+    return {"message": "Read-only Slack sync completed", "messages_seen": len(messages),
+            "processes": processes, "activities": activities}
 
 
 @router.get("/{channel_id}", response_model=ChannelPublic)
@@ -90,5 +94,6 @@ async def whatsapp_webhook(request: Request) -> dict[str, int | str]:
         ))
         await database.create_messages(messages)
         processes, activities = await run_discovery()
-        return {"message": "WhatsApp messages ingested", "messages_seen": len(messages), "processes": processes, "activities": activities}
+        return {"message": "WhatsApp messages ingested", "messages_seen": len(messages),
+                "processes": processes, "activities": activities}
     return {"message": "No ingestible messages in payload", "messages_seen": 0}
