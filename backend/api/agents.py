@@ -3,13 +3,17 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from .. import database
+from ..deployment.agent_factory import AgentFactory
 from ..models.schema import AgentBranch, AgentStatus, DeploymentConfig, DeploymentMode
+from ..security import require_api_key
 
 router = APIRouter()
+
+_factory = AgentFactory()
 
 
 class DeployAgentRequest(BaseModel):
@@ -23,14 +27,22 @@ class DraftRequest(BaseModel):
 
 
 def _ensure_safe_config(config: DeploymentConfig) -> None:
-    if not config.approval_required or config.mode != DeploymentMode.DRAFT:
+    # The approval boundary is structural: no API caller can disable it, and
+    # fully autonomous operation is not offered through this surface at all.
+    if config.mode == DeploymentMode.AUTONOMOUS:
         raise HTTPException(
             status_code=422,
-            detail="This MVP only supports draft mode with a mandatory human approval gate.",
+            detail="AUTONOMOUS mode is not available through this API. Use DRAFT or ASSISTED.",
+        )
+    if not config.approval_required:
+        raise HTTPException(
+            status_code=422,
+            detail="approval_required cannot be disabled — every agent branch keeps a mandatory human approval gate.",
         )
 
 
-@router.post("/deploy", response_model=AgentBranch, status_code=201)
+@router.post("/deploy", response_model=AgentBranch, status_code=201,
+             dependencies=[Depends(require_api_key)])
 async def deploy_agent(request: DeployAgentRequest) -> AgentBranch:
     process = await database.get_process(request.process_id)
     score = await database.get_score(request.process_id)
@@ -51,6 +63,22 @@ async def deploy_agent(request: DeployAgentRequest) -> AgentBranch:
         created_at=datetime.now(timezone.utc),
         metrics={"drafts_created": 0, "human_approval_rate": None, "external_actions": 0},
     )
+    # Generate the LangGraph program at deploy time and prove it parses before
+    # storing it. The generated code is inert by design (execute_agent_step
+    # raises until a human wires tools), but it must never be syntactically
+    # broken -- a stored artifact that cannot compile is worse than none.
+    agent.generated_code = _factory.generate_langgraph_code(
+        process, request.config, request.name,
+    )
+    try:
+        # compile() is stricter than parse(): it rejects anything that would
+        # only fail at first execution of a statement.
+        compile(agent.generated_code.python_code, "<generated>", "exec")
+    except SyntaxError as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Generated workflow failed validation: {error}",
+        ) from error
     return await database.create_agent(agent)
 
 
@@ -59,7 +87,8 @@ async def list_agents() -> list[AgentBranch]:
     return await database.get_agents()
 
 
-@router.post("/{agent_id}/approve", response_model=AgentBranch)
+@router.post("/{agent_id}/approve", response_model=AgentBranch,
+             dependencies=[Depends(require_api_key)])
 async def approve_agent(agent_id: str) -> AgentBranch:
     agent = await database.get_agent(agent_id)
     if not agent:
@@ -69,7 +98,8 @@ async def approve_agent(agent_id: str) -> AgentBranch:
     return await database.save_agent(agent)
 
 
-@router.post("/{agent_id}/pause", response_model=AgentBranch)
+@router.post("/{agent_id}/pause", response_model=AgentBranch,
+             dependencies=[Depends(require_api_key)])
 async def pause_agent(agent_id: str) -> AgentBranch:
     agent = await database.get_agent(agent_id)
     if not agent:
@@ -78,7 +108,7 @@ async def pause_agent(agent_id: str) -> AgentBranch:
     return await database.save_agent(agent)
 
 
-@router.post("/{agent_id}/draft")
+@router.post("/{agent_id}/draft", dependencies=[Depends(require_api_key)])
 async def draft_response(agent_id: str, request: DraftRequest) -> dict[str, str]:
     agent = await database.get_agent(agent_id)
     if not agent:
@@ -97,7 +127,7 @@ async def draft_response(agent_id: str, request: DraftRequest) -> dict[str, str]
     }
 
 
-@router.delete("/{agent_id}")
+@router.delete("/{agent_id}", dependencies=[Depends(require_api_key)])
 async def undeploy_agent(agent_id: str) -> dict[str, str]:
     if not await database.delete_agent(agent_id):
         raise HTTPException(status_code=404, detail="Agent not found")

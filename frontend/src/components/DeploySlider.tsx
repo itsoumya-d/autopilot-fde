@@ -18,9 +18,9 @@ const DeploySlider: React.FC<DeploySliderProps> = ({ value, onChange }) => {
       />
       <div className="flex justify-between text-xs text-slate-400 mt-2 px-1">
         <span>0%</span>
+        <span>12.5%</span>
         <span>25%</span>
-        <span>50%</span>
-        <span>40%</span>
+        <span>37.5%</span>
         <span>50%</span>
       </div>
     </div>

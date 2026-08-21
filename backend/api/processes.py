@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from ..security import require_api_key
+from fastapi import APIRouter, Depends, HTTPException
 
 from .. import database
 from ..models.schema import Process
@@ -12,7 +13,7 @@ async def list_processes() -> list[Process]:
     return await database.get_processes()
 
 
-@router.post("/discover")
+@router.post("/discover", dependencies=[Depends(require_api_key)])
 async def trigger_discovery() -> dict[str, int | str]:
     processes, activities = await run_discovery()
     return {"message": "Discovery completed from read-only observations", "processes": processes, "activities": activities}

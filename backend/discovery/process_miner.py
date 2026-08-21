@@ -72,6 +72,9 @@ class ProcessMiner:
     """Discovers repeating business workflows, computes graph topology entropy, and constructs state machine edges."""
 
     MINIMUM_TRACES = 2
+    # Observed traces are a sample of a month of stream history; scale the raw
+    # trace count to an approximate monthly volume.
+    TRACES_TO_MONTHLY_VOLUME = 4.33
 
     def mine(self, activities: list[Activity]) -> list[Process]:
         cases: dict[str, list[Activity]] = defaultdict(list)
@@ -131,13 +134,18 @@ class ProcessMiner:
             for (source, target), durations in all_edges.items()
         ]
 
-        # Calculate Shannon Graph Transition Entropy
+        # Shannon Graph Transition Entropy. Computed on UNROUNDED probabilities —
+        # rounding first can make them sum to something other than 1 and skew H.
+        # Edges are grouped by source once (O(V+E)) instead of rescanned per node.
+        edges_by_source: dict[str, list[tuple[str, float]]] = defaultdict(list)
+        for (source, target), durations in all_edges.items():
+            edges_by_source[source].append((target, len(durations) / outgoing[source]))
+
         entropy = 0.0
-        for source in outgoing:
-            source_edges = [e for e in edges if e.source == source]
-            for edge in source_edges:
-                if edge.probability > 0:
-                    entropy -= edge.probability * math.log2(edge.probability)
+        for source_edges in edges_by_source.values():
+            for _, probability in source_edges:
+                if probability > 0:
+                    entropy -= probability * math.log2(probability)
 
         durations = [
             (trace[-1].timestamp - trace[0].timestamp).total_seconds() / 60
@@ -159,7 +167,7 @@ class ProcessMiner:
             activities=representative,
             edges=edges,
             metrics=ProcessMetrics(
-                volume_per_month=count * 4,
+                volume_per_month=int(count * self.TRACES_TO_MONTHLY_VOLUME),
                 avg_completion_minutes=round(sum(durations) / len(durations), 1) if durations else 0.0,
                 trace_count=count,
                 pattern_consistency=round(dominant_count / count, 2),

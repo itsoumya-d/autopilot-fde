@@ -22,9 +22,12 @@ class ProcessSimulator:
         score: APScore,
         runs: int = 1000,
         confidence_threshold: float = 0.80,
+        seed: int = 42,
     ) -> SimulationResult:
         """Runs a Monte Carlo simulation of the process under agent automation."""
-        random.seed(42)  # Deterministic seed for reproducible evaluation
+        # A dedicated Random instance keeps runs reproducible without mutating the
+        # global RNG (which correlated results across concurrent requests).
+        rng = random.Random(seed)
 
         straight_through_count = 0
         escalation_count = 0
@@ -45,7 +48,7 @@ class ProcessSimulator:
                 is_auto = step_feasibility.is_automatable
 
                 # Base automated execution latency (2 to 8 seconds = ~0.08 minutes)
-                step_auto_duration = random.uniform(0.05, 0.15)
+                step_auto_duration = rng.uniform(0.05, 0.15)
                 # Historical manual step duration
                 step_manual_duration = manual_duration / max(1, len(process.activities))
 
@@ -56,13 +59,13 @@ class ProcessSimulator:
                     step_durations_after[step_name].append(step_manual_duration)
                 else:
                     # Step is automated -> sample agent confidence
-                    simulated_agent_confidence = random.betavariate(
+                    simulated_agent_confidence = rng.betavariate(
                         alpha=step_feasibility.feasibility_score * 10,
                         beta=(1.0 - step_feasibility.feasibility_score) * 10 + 0.1,
                     )
 
                     # Tokens consumed per automated reasoning step (~400-800 tokens)
-                    total_tokens_consumed += random.randint(400, 800)
+                    total_tokens_consumed += rng.randint(400, 800)
 
                     if simulated_agent_confidence < confidence_threshold or step_feasibility.requires_approval:
                         # Escalated to human review queue

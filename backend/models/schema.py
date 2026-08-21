@@ -1,6 +1,6 @@
 """Unified schema for AutoPilot FDE — satisfies backend API, ML engine, simulation, and code generation."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
 from pydantic import BaseModel, Field
 from enum import Enum
@@ -24,8 +24,31 @@ class ChannelStatus(str, Enum):
 class Channel(BaseModel):
     id: str
     type: ChannelType
-    credentials: Dict[str, str] = Field(default_factory=dict)
+    name: str = "Unnamed channel"
+    # Server-side only. Never serialized through ChannelPublic responses.
+    credentials: Dict[str, str] = Field(default_factory=dict, exclude=True)
     status: ChannelStatus = ChannelStatus.ACTIVE
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    message_count: int = 0
+
+
+class ChannelPublic(BaseModel):
+    """Wire representation of a channel -- deliberately credential-free."""
+
+    id: str
+    type: ChannelType
+    name: str = "Unnamed channel"
+    status: ChannelStatus = ChannelStatus.ACTIVE
+    created_at: datetime
+    message_count: int = 0
+
+    @classmethod
+    def from_channel(cls, channel: Channel) -> "ChannelPublic":
+        return cls(
+            id=channel.id, type=channel.type, name=channel.name,
+            status=channel.status, created_at=channel.created_at,
+            message_count=channel.message_count,
+        )
 
 
 # ── Message ────────────────────────────────────────────────────────────────
@@ -164,14 +187,22 @@ class SimulationResult(BaseModel):
 
 # ── Deployment & Code Generation ───────────────────────────────────────────
 
+class DeploymentMode(str, Enum):
+    DRAFT = "draft"            # Everything lands in a review queue; zero external side effects
+    ASSISTED = "assisted"      # Internal read/staging actions automated, writes gated
+    AUTONOMOUS = "autonomous"  # Eligible steps run straight-through; criticals still gated
+
+
 class DeploymentConfig(BaseModel):
-    deploy_percentage: float = 100.0
-    steps: List[str] = Field(default_factory=list)
-    hitl_required: bool = True
-    hitl_threshold: float = 0.8
+    mode: DeploymentMode = DeploymentMode.DRAFT
+    traffic_percentage: float = Field(default=100.0, ge=0.0, le=100.0)
+    enabled_steps: List[str] = Field(default_factory=list)
+    approval_required: bool = True
+    confidence_threshold: float = Field(default=0.8, ge=0.5, le=0.99)
 
 
 class AgentStatus(str, Enum):
+    PENDING_APPROVAL = "pending_approval"
     DEPLOYING = "deploying"
     RUNNING = "running"
     PAUSED = "paused"
@@ -192,8 +223,9 @@ class AgentBranch(BaseModel):
     id: str
     process_id: str
     name: str
-    status: AgentStatus = AgentStatus.DEPLOYING
+    status: AgentStatus = AgentStatus.PENDING_APPROVAL
     config: DeploymentConfig = Field(default_factory=DeploymentConfig)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     metrics: Dict[str, Any] = Field(default_factory=dict)
     generated_code: Optional[GeneratedAgentCode] = None
 

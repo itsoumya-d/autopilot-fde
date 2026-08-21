@@ -83,6 +83,9 @@ export default function ShowcasePage() {
         <p className="text-lg sm:text-xl text-slate-300 leading-relaxed max-w-3xl mx-auto font-light">
           The first autonomous Forward Deployed Engineer agent. Mines unstructured communication, computes graph transition entropy, simulates Straight-Through Rates, and compiles LangGraph state machines.
         </p>
+        <p className="mt-4 text-sm text-amber-300/90 bg-amber-950/40 border border-amber-800/50 rounded-lg px-4 py-2 inline-block">
+          Demo showcase: the numbers and code samples below are illustrative fixtures, not live backend results.
+        </p>
       </motion.div>
 
       {/* Navigation Tabs */}

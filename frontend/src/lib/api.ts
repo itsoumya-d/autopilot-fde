@@ -1,8 +1,9 @@
-export type SafetyStatus = 'review_required' | 'draft_only' | 'blocked';
+// Mirrors backend SafetyStatus (models/schema.py). Keep in sync.
+export type SafetyStatus = 'observation_only' | 'draft_only' | 'assisted' | 'autonomous';
 
 export interface Channel {
   id: string;
-  type: 'slack';
+  type: 'slack' | 'whatsapp' | 'email' | 'call';
   name: string;
   status: 'active' | 'inactive' | 'error';
   message_count: number;

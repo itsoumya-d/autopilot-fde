@@ -1,4 +1,7 @@
-from fastapi import APIRouter, HTTPException, Query
+from ..security import require_api_key
+from fastapi import APIRouter, Depends, HTTPException, Query
+
+import asyncio
 
 from .. import database
 from ..models.schema import APScore, Recommendation, SimulationResult
@@ -19,7 +22,7 @@ async def recommendations() -> list[Recommendation]:
     return Recommender().recommend(await database.get_processes(), await database.get_scores())
 
 
-@router.post("/recalculate")
+@router.post("/recalculate", dependencies=[Depends(require_api_key)])
 async def recalculate_scores() -> dict[str, int | str]:
     processes, _ = await run_discovery()
     return {"message": "Scores recalculated from current evidence", "processes": processes}
@@ -46,7 +49,10 @@ async def simulate_process(
         raise HTTPException(status_code=404, detail="Process or score not found for simulation")
     
     simulator = ProcessSimulator()
-    return simulator.simulate(
+    # The Monte Carlo loop is CPU-bound pure Python; offload it so the event
+    # loop keeps serving other requests while 10k runs execute.
+    return await asyncio.to_thread(
+        simulator.simulate,
         process=process,
         score=score,
         runs=runs,

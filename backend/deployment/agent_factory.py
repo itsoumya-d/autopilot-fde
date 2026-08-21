@@ -16,6 +16,11 @@ from backend.models.schema import (
 )
 
 
+def _indent_join(lines: list[str], indent: str = "    ") -> str:
+    """Join generated statements so every line keeps the caller's indentation."""
+    return ("\n" + indent).join(lines)
+
+
 class AgentFactory:
     """Creates deployed agent branches and synthesizes executable LangGraph workflow code."""
 
@@ -32,7 +37,9 @@ class AgentFactory:
             id=f"agent-{uuid4().hex[:10]}",
             process_id=process.id,
             name=agent_name,
-            status=AgentStatus.RUNNING,
+            # Every branch starts gated: an operator must approve it through the
+            # API before it may execute anything.
+            status=AgentStatus.PENDING_APPROVAL,
             config=config,
             metrics={
                 "runs_executed": 0,
@@ -60,10 +67,10 @@ class AgentFactory:
 
         for index, step in enumerate(step_names):
             node_slug = "".join(c if c.isalnum() else "_" for c in step.lower()).strip("_")
-            is_deployed = step in config.steps if config.steps else True
-            
+            is_deployed = step in config.enabled_steps if config.enabled_steps else True
+
             # Identify if step is critical / needs human signoff
-            is_hitl = config.hitl_required and (index == len(step_names) - 1 or "confirm" in node_slug or "pay" in node_slug or "approval" in node_slug)
+            is_hitl = config.approval_required and (index == len(step_names) - 1 or "confirm" in node_slug or "pay" in node_slug or "approval" in node_slug)
 
             if is_deployed and not is_hitl:
                 node_code = f"""
@@ -112,13 +119,31 @@ class WorkflowState(TypedDict):
     step_history: Annotated[List[Dict[str, Any]], operator.add]
     is_escalated: bool
 
+class HumanApprovalRequired(Exception):
+    """Raised at a HITL checkpoint; catch it to persist a pending-approval record."""
+    def __init__(self, step_name: str, context: dict, message: str = "Human approval required"):
+        super().__init__(message)
+        self.step_name = step_name
+        self.context = context
+        self.message = message
+
 def execute_agent_step(step_name: str, context: dict) -> dict:
-    # Production adapter: invokes configured BYOK model with typed Pydantic tool schemas
-    return {{"status": "success", "processed_by": "{agent_name}"}}
+    # Wire this adapter to your real tool integrations (CRM, ITSM, ERP...).
+    # It deliberately has no default success value: an unimplemented step must
+    # fail loudly instead of pretending the work happened.
+    raise NotImplementedError(
+        f"No tool integration is configured for step '{{step_name}}'. "
+        "Implement execute_agent_step before running this workflow."
+    )
 
 def request_human_approval(step_name: str, context: dict) -> dict:
-    # Staging adapter: sends Slack/WhatsApp interactive approval button
-    return {{"status": "approved", "verifier": "admin@otaitech.com"}}
+    # Real Human-in-the-Loop gate: this checkpoint HALTS the branch until a
+    # human approves it out-of-band (API/Slack). It never self-approves.
+    raise HumanApprovalRequired(
+        step_name=step_name,
+        context=context,
+        message=f"Workflow paused: step '{{step_name}}' requires human approval.",
+    )
 
 # ── Node Definitions ────────────────────────────────────────────────────────
 {chr(10).join(node_definitions)}
@@ -128,13 +153,13 @@ def build_agent_graph() -> StateGraph:
     workflow = StateGraph(WorkflowState)
 
     # Register nodes
-    {chr(10).join([f'workflow.add_node("node_{"".join(c if c.isalnum() else "_" for c in s.lower()).strip("_")}", node_{"".join(c if c.isalnum() else "_" for c in s.lower()).strip("_")})' for s in step_names])}
+    {_indent_join([f'workflow.add_node("node_{"".join(c if c.isalnum() else "_" for c in s.lower()).strip("_")}", node_{"".join(c if c.isalnum() else "_" for c in s.lower()).strip("_")})' for s in step_names])}
 
     # Set entry point
     workflow.set_entry_point("node_{first_slug}")
 
     # Register linear and conditional edges
-    {chr(10).join(edge_connections)}
+    {_indent_join(edge_connections)}
     workflow.add_edge("node_{last_slug}", END)
 
     return workflow.compile()

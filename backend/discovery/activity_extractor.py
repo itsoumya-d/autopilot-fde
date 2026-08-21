@@ -11,6 +11,13 @@ from typing import Optional
 
 from backend.models.schema import Activity, Message
 
+# Compiled once at import: entity signals (amounts, ticket IDs like JIRA-482,
+# versions, issue numbers, emails) used for confidence boosting.
+ENTITY_PATTERN = re.compile(
+    r"\$\d+|\b[A-Z]{2,}-\d+\b|v\d+\.\d+|#\d+|\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b"
+)
+WHITESPACE_PATTERN = re.compile(r"\s+")
+
 
 class ActivityExtractor:
     """Extracts business activities with dynamic confidence, actor attribution, and evidence traceability."""
@@ -72,7 +79,8 @@ class ActivityExtractor:
         """Extract activities with confidence scoring based on lexical density and entity signals."""
         activities: list[Activity] = []
         for message in messages:
-            text = message.content.lower()
+            original_text = message.content
+            text = original_text.lower()
             
             # Find all matching rules and score by specificity (length of matched phrase)
             matches: list[tuple[str, str, int, list[str]]] = []
@@ -93,7 +101,7 @@ class ActivityExtractor:
             case_id = message.thread_id or (message.metadata.get("case_id") if message.metadata else None) or f"message:{message.id}"
             
             # Dynamic Bayesian confidence computation
-            confidence = self._compute_confidence(text, matched_terms, message.sender)
+            confidence = self._compute_confidence(original_text, matched_terms, message.sender)
 
             activities.append(
                 Activity(
@@ -111,18 +119,18 @@ class ActivityExtractor:
         return activities
 
     @staticmethod
-    def _compute_confidence(text: str, matched_terms: list[str], sender: str) -> float:
+    def _compute_confidence(original_text: str, matched_terms: list[str], sender: str) -> float:
         """Dynamic confidence calculation based on match count, entity presence, and actor authority."""
         base_confidence = 0.82
-        
+
         # Boost for multiple distinct matched keywords
         keyword_boost = min(0.08, (len(matched_terms) - 1) * 0.04)
-        
-        # Boost for detected domain entities (amounts, ticket IDs, version numbers, emails)
-        entity_boost = 0.0
-        if re.search(r"\$\d+|\b[A-Z]{2,}-\d+\b|v\d+\.\d+|#\d+|\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b", text):
-            entity_boost += 0.05
-            
+
+        # Boost for detected domain entities (amounts, ticket IDs, version numbers, emails).
+        # Runs on the ORIGINAL text: ticket IDs like "JIRA-482" are case-sensitive
+        # signals and would never match lowercased content.
+        entity_boost = 0.05 if ENTITY_PATTERN.search(original_text) else 0.0
+
         # Boost for human or system bot sender clarity
         sender_boost = 0.03 if sender and not sender.startswith("anonymous") else 0.0
 
@@ -131,5 +139,5 @@ class ActivityExtractor:
 
     @staticmethod
     def _snippet(text: str) -> str:
-        clean = re.sub(r"\s+", " ", text).strip()
+        clean = WHITESPACE_PATTERN.sub(" ", text).strip()
         return clean[:200] + ("…" if len(clean) > 200 else "")

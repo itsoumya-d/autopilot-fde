@@ -6,18 +6,26 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import database
 from .api import agents, channels, dashboard, processes, scores
+from .security import api_key_configured
 from .services import ensure_demo_workspace, run_discovery
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("autopilot")
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     await database.init_db()
+    if not api_key_configured():
+        logger.warning(
+            "AUTOPILOT_API_KEY is not set: mutating endpoints (deploy, approve, "
+            "sync, discover) are OPEN. Set it before any shared deployment."
+        )
     await ensure_demo_workspace()
     if not await database.get_processes():
         await run_discovery()
     yield
+    await database.close_db()
 
 
 app = FastAPI(

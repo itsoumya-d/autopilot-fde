@@ -1,6 +1,11 @@
-fastapi>=0.100.0
-uvicorn>=0.22.0
-pydantic>=2.0.0
-aiosqlite>=0.19.0
-slack_sdk>=3.21.3
-httpx>=0.24.1
+# Runtime dependencies. Pinned to known-good minimums; the lockfile for full
+# reproducibility is generated with `pip freeze > requirements.lock`.
+fastapi>=0.100.0,<1.0
+uvicorn>=0.22.0,<1.0
+pydantic>=2.0.0,<3.0
+aiosqlite>=0.19.0,<1.0
+slack_sdk>=3.21.3,<4.0
+httpx>=0.24.1,<1.0
+
+# Optional -- only needed when AUTOPILOT_LLM_ENHANCE=1 (OpenAI-compatible API).
+# langgraph>=0.2  # required only to EXECUTE generated workflow code, not to deploy
