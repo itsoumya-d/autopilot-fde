@@ -133,7 +133,7 @@ Empirical results across 158 multi-turn interactions evaluated by `scripts/test_
 - [x] **Step Action Safety Classifier**: 5 discrete risk tiers (`READ_ONLY`, `DRAFT_ONLY`, `INTERNAL_ACTION`, `EXTERNAL_WRITE`, `CRITICAL_TRANSACTION`).
 - [x] **Discrete-Event Monte Carlo Simulator**: 1,000 runs per workflow forecasting Straight-Through Rates (STR) and bottleneck steps; seed-reproducible.
 - [x] **Autonomous LangGraph Generator**: Emits runnable, typed Python state machines with `request_human_approval` checkpoints.
-- [x] **Next.js 15.5 Frontend**: 9/9 static routes compiled with React Flow, dark theme, ESLint-clean, zero type errors.
+- [x] **Next.js 15.5 Frontend**: 9/9 static routes compiled with React Flow, dark theme, ESLint-clean, zero type errors — with a **9-test vitest suite** covering the API request layer (error mapping, mutation shapes) and the gauge/stat components.
 
 ### 🟡 Upcoming Roadmap (Features Left to Check)
 - [ ] **Multi-Modal Video & Audio Stream Extraction**: Ingestion of recorded Zoom/Teams meeting transcripts via Whisper & Vision LLMs.
@@ -175,7 +175,9 @@ PYTHONPATH=. pytest tests/ -v --cov=backend --cov-report=term-missing
 ruff check backend/ tests/ scripts/
 
 # Frontend gates
-cd frontend && npm run lint && npx tsc --noEmit && npm run build
+cd frontend
+npm run test   # vitest: api layer + components
+npm run lint && npx tsc --noEmit && npm run build
 ```
 
 ---

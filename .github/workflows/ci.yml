@@ -55,6 +55,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Unit tests (vitest)
+        run: npm run test
+
       - name: Typecheck
         run: npx tsc --noEmit
 
