@@ -120,10 +120,12 @@ Empirical results across 158 multi-turn interactions evaluated by `scripts/test_
 ## ✅ Verified Functionality & Roadmap
 
 ### 🟢 What Has Been Tested & Fully Verified (100% Passing)
-- [x] **AutoPilot FDE Test Suite**: 36/36 tests passed (`PYTHONPATH=. pytest tests/ -v`) —
+- [x] **AutoPilot FDE Test Suite**: 51/51 tests passed (`PYTHONPATH=. pytest tests/ -v`) —
   covering the discovery→score→deploy lifecycle, the approval boundary, webhook
   signature verification, credential-free API responses, APS keyword-classifier
-  fallbacks, Monte Carlo reproducibility, and WhatsApp payload parsing edge cases.
+  fallbacks, Monte Carlo reproducibility, WhatsApp payload parsing edge cases,
+  the Slack sync normalization rules, and the LLM-enhancer fallback chain — at
+  **90% backend line coverage**, enforced as a CI gate.
 - [x] *HostShift* (a separate repository at `itsoumya-d/hostshift`) has its own
   198-assertion suite; it is not tested from this repo.
 - [x] **Bayesian Activity Extraction**: 30+ multi-pattern rules across 8 enterprise departments with dynamic confidence (0.85–0.98).
@@ -166,8 +168,8 @@ npm run dev
 
 ### 3. Run Test Suites
 ```bash
-# AutoPilot FDE Test Suite (36 assertions)
-PYTHONPATH=. pytest tests/ -v
+# AutoPilot FDE Test Suite (51 assertions, 90% backend coverage)
+PYTHONPATH=. pytest tests/ -v --cov=backend --cov-report=term-missing
 
 # Lint (backend + scripts)
 ruff check backend/ tests/ scripts/
