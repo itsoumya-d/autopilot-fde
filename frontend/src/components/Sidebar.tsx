@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, MessageSquare, Activity, BarChart2, Rocket, TrendingUp, Sparkles, Share2, Menu } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Activity, BarChart2, Rocket, TrendingUp, Sparkles, Share2, Boxes, Menu } from 'lucide-react';
 
 const Sidebar = () => {
   const pathname = usePathname();
@@ -15,6 +15,7 @@ const Sidebar = () => {
     { href: '/showcase', label: 'Motion Showcase', icon: Sparkles },
     { href: '/channels', label: 'Channels', icon: MessageSquare },
     { href: '/processes', label: 'Processes', icon: Activity },
+    { href: '/objects', label: 'Object Lens', icon: Boxes },
     { href: '/scores', label: 'Scores', icon: BarChart2 },
     { href: '/deploy', label: 'Deploy', icon: Rocket },
     { href: '/performance', label: 'Performance', icon: TrendingUp },

@@ -85,6 +85,26 @@ export interface DashboardSummary {
   pending_approvals: number;
 }
 
+// OCEL-shaped object log (v0.9 backend). Structural mirror of lib/objectLens.
+export interface ObjectLogResponse {
+  ocel_version: string;
+  eventTypes: Array<{ name: string }>;
+  events: Array<{
+    id: string;
+    type: string;
+    time: string;
+    attributes: Array<{ name: string; type: string; value: unknown }>;
+    relationships: Array<{ objectId: string; qualifier: string }>;
+  }>;
+  objectTypes: Array<{ name: string }>;
+  objects: Array<{
+    id: string;
+    type: string;
+    relationships: Array<{ objectId: string; qualifier: string }>;
+  }>;
+  summaries: Record<string, { objects: number; events_touching: number }>;
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -112,4 +132,6 @@ export const api = {
   approveAgent: (id: string) => request<Agent>(`/agents/${id}/approve`, { method: 'POST' }),
   pauseAgent: (id: string) => request<Agent>(`/agents/${id}/pause`, { method: 'POST' }),
   removeAgent: (id: string) => request<{ message: string }>(`/agents/${id}`, { method: 'DELETE' }),
+  objectLog: (limit = 500) =>
+    request<ObjectLogResponse>(`/processes/object-log?limit=${limit}`),
 };

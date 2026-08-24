@@ -203,7 +203,7 @@ Empirical results across 158 multi-turn interactions evaluated by `scripts/test_
 ## ✅ Verified Functionality & Roadmap
 
 ### 🟢 What Has Been Tested & Fully Verified (100% Passing)
-- [x] **AutoPilot FDE Test Suite**: 311/311 tests passed (`PYTHONPATH=. pytest tests/ -v`) —
+- [x] **AutoPilot FDE Test Suite**: 311 backend tests (`PYTHONPATH=. pytest tests/ -v`) —
   covering the discovery→score→deploy lifecycle, the approval boundary, webhook
   signature verification (including strict signed-only mode), the API-key gate,
   credential-free API responses, guarded agent state transitions
@@ -288,7 +288,7 @@ npm run dev
 
 ### 3. Run Test Suites
 ```bash
-# AutoPilot FDE Test Suite (311 assertions, =100% backend coverage gate)
+# AutoPilot FDE Test Suite (311 backend assertions + 16 frontend tests, =100% backend coverage gate)
 PYTHONPATH=. pytest tests/ -v --cov=backend --cov-report=term-missing
 
 # Lint (backend + scripts)
@@ -453,6 +453,10 @@ research⇄implement loop ([ROADMAP.md](ROADMAP.md) ·
   a **dead-letter queue** for failed internal actions with an identity-bound
   human-review endpoint (`/api/dlq`), and a deny-by-default webhook
   allowlist (`.autopilot/tools.policy.json`).
+- **v0.10.0 Object Lens** *(shipped)* — the multi-object log becomes a
+  dashboard view: per-type summary cards with counts, type filter chips,
+  objects table ranked by relationship count, and a click-through
+  chronological trace per object (`/objects` in the console).
 - **v0.9.0 Object-Centric Discovery** *(shipped)* — chat-derived activity
   re-expressed as an **OCEL 2.0-shaped multi-object log**
   (`GET /api/processes/object-log`,

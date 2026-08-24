@@ -22,6 +22,9 @@ gantt
   Hash-chained tamper-evident audit export  :a2, after a1, 1d
   Token-cost attribution rollups            :a3, after a2, 1d
 
+  section v0.10.0 Object Lens (dashboard)
+  /objects view: filters, summaries, traces   :done, f1, 2026-08-24, 1d
+
   section v0.9.0 Object-Centric Discovery
   OCEL-shaped multi-object log + API/CLI      :done, e1, 2026-08-24, 1d
 
@@ -117,6 +120,7 @@ graph LR
 | v0.7.0 | Connected | **shipped** | connector profiles, A2A cards, Slack approvals, email |
 | v0.8.0 | Operable Identity & Telemetry | **shipped** | OTLP env wiring, expiring identity leases |
 | v0.9.0 | Object-Centric Discovery | **shipped** | OCEL-shaped multi-object log, per-object traces |
+| v0.10.0 | Object Lens dashboard | **shipped** | /objects console view: type chips, summaries, trace drawer |
 
 ## Verification contract (every iteration)
 
