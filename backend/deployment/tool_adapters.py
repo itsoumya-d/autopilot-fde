@@ -31,6 +31,7 @@ from urllib.parse import urlparse
 import httpx
 
 from ..models.schema import StepActionType
+from ..observability.tracing import tool_span
 from ..scoring.aps_engine import APSEngine
 
 _DRAFT_DIR_ENV = "AUTOPILOT_DRAFT_DIR"
@@ -63,21 +64,41 @@ def classify_step(step_name: str) -> StepActionType:
     return StepActionType.READ_ONLY
 
 
-def execute_agent_step(step_name: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
+def execute_agent_step(
+    step_name: str,
+    context: dict[str, Any] | None = None,
+    *,
+    agent_id: str | None = None,
+) -> dict[str, Any]:
     """Dispatch a generated-workflow step to the adapter its risk tier allows.
 
     This is the function generated LangGraph code imports. An unimplemented
     step must fail loudly instead of pretending the work happened.
+
+    Every dispatch emits an OTel ``gen_ai.*`` span (structured no-op when the
+    observability extra is not installed); token usage attaches via
+    ``context["token_usage"] = (input_tokens, output_tokens)`` when known.
     """
     context = dict(context or {})
     action_type = classify_step(step_name)
     handler = _HANDLERS.get(action_type)
-    if handler is None:
-        raise StructuralGateError(
-            f"Step '{step_name}' is classified {action_type.value}; "
-            "this tier cannot be executed automatically and requires a human."
-        )
-    result = handler(step_name, context)
+    usage = context.pop("token_usage", None)
+    with tool_span(f"adapter.{action_type.value}", step_name=step_name,
+                   agent_id=agent_id) as span:
+        if handler is None:
+            span.record_exception(StructuralGateError(step_name))
+            raise StructuralGateError(
+                f"Step '{step_name}' is classified {action_type.value}; "
+                "this tier cannot be executed automatically and requires a human."
+            )
+        try:
+            result = handler(step_name, context)
+        except Exception as error:
+            span.record_exception(error)
+            raise
+        if usage is not None:
+            input_tokens, output_tokens = usage
+            span.set_token_usage(int(input_tokens), int(output_tokens))
     result.setdefault("step_name", step_name)
     result.setdefault("action_type", action_type.value)
     result["executed_at"] = datetime.now(UTC).isoformat()

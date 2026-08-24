@@ -1,0 +1,5 @@
+# Optional runtime dependencies for OpenTelemetry gen_ai.* observability.
+# Without these, tracing calls are structured no-ops (core stays zero-dep).
+#   pip install -r requirements-observability.txt
+opentelemetry-api>=1.20,<2.0
+opentelemetry-sdk>=1.20,<2.0

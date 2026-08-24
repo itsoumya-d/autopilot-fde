@@ -303,4 +303,8 @@ async def dashboard_summary() -> DashboardSummary:
         evidence_backed_hours=round(sum(score.estimated_hours_saved_monthly for score in scores), 1),
         active_agents=sum(agent.status == AgentStatus.RUNNING for agent in agents),
         pending_approvals=sum(agent.status == AgentStatus.PENDING_APPROVAL for agent in agents),
+        estimated_monthly_token_cost_dollars=round(
+            sum(float(score.factors.get("estimated_monthly_token_cost", 0.0)) for score in scores), 2),
+        agent_tokens_consumed=sum(
+            int(agent.metrics.get("total_tokens_consumed", 0)) for agent in agents),
     )

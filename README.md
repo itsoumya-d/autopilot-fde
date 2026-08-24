@@ -203,7 +203,7 @@ Empirical results across 158 multi-turn interactions evaluated by `scripts/test_
 ## ✅ Verified Functionality & Roadmap
 
 ### 🟢 What Has Been Tested & Fully Verified (100% Passing)
-- [x] **AutoPilot FDE Test Suite**: 202/202 tests passed (`PYTHONPATH=. pytest tests/ -v`) —
+- [x] **AutoPilot FDE Test Suite**: 220/220 tests passed (`PYTHONPATH=. pytest tests/ -v`) —
   covering the discovery→score→deploy lifecycle, the approval boundary, webhook
   signature verification (including strict signed-only mode), the API-key gate,
   credential-free API responses, guarded agent state transitions
@@ -288,7 +288,7 @@ npm run dev
 
 ### 3. Run Test Suites
 ```bash
-# AutoPilot FDE Test Suite (202 assertions, >=85% backend coverage gate)
+# AutoPilot FDE Test Suite (220 assertions, =100% backend coverage gate)
 PYTHONPATH=. pytest tests/ -v --cov=backend --cov-report=term-missing
 
 # Lint (backend + scripts)
@@ -418,6 +418,35 @@ Everything below is configuration or fork-and-edit; no core changes needed.
    raw messages with expert extractions; docs/FINE-TUNING.md walks the OpenAI
    API, Together, and local-LoRA paths — including serving your fine-tuned
    model back as the discovery enhancer.
+
+---
+
+## 🧭 Where FDE Is Going (and how this repo follows)
+
+Forward-deployed engineering became the enterprise-AI operating motion in
+2026: OpenAI, Anthropic/Ode, AWS, Microsoft and IBM committed a combined
+**$9B+ to FDE organizations**, and 78% of surveyed FDE teams expect to double
+headcount in 2027 ([State of FDE 2026](docs/RESEARCH-LOG.md)). The tooling
+data says what production demands next — observability/eval at 78% adoption,
+always-on discovery loops by 2027 — and regulators say the same thing in
+stricter words (EU AI Act explainability records, tamper-evident logs).
+
+This repository implements those requirements as they land, on a public
+research⇄implement loop ([ROADMAP.md](ROADMAP.md) ·
+[research log](docs/RESEARCH-LOG.md)):
+
+- **v0.5.0 Observable & Compliant** *(shipped)* — OpenTelemetry `gen_ai.*`
+  spans on every tool dispatch (`requirements-observability.txt`, no-op
+  fallback keeps the core dependency-free); **tamper-evident hash-chained
+  audit export** per agent
+  (`GET /api/agents/{id}/audit-chain`,
+  `scripts/export_audit_chain.py --verify`) built for Article 12-style
+  record-keeping; token-cost attribution rollups on the dashboard.
+- **v0.6.0 Governed Autonomy** — per-agent workload identity tokens,
+  per-agent quotas, idempotent tool execution with a dead-letter queue +
+  human review, tool-governance allowlist policy.
+- **v0.7.0 Connected** — ServiceNow/Salesforce/Jira connector profiles,
+  A2A agent cards, Slack interactive approvals, IMAP email ingestion.
 
 ---
 

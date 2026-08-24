@@ -239,3 +239,7 @@ class DashboardSummary(BaseModel):
     evidence_backed_hours: float = 0.0
     active_agents: int = 0
     pending_approvals: int = 0
+    # Cost attribution rollups (gen_ai.usage posture): modeled monthly token
+    # spend across scored processes, and runtime tokens burned by agents.
+    estimated_monthly_token_cost_dollars: float = 0.0
+    agent_tokens_consumed: int = 0

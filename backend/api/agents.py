@@ -224,6 +224,20 @@ async def draft_response(agent_id: str, request: DraftRequest, http: Request) ->
     }
 
 
+@router.get("/{agent_id}/audit-chain")
+async def agent_audit_chain(agent_id: str) -> dict:
+    """Tamper-evident export of the agent's audit trail (hash-chained)."""
+    from ..export.audit_chain import export_agent_chain
+
+    agent = await database.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    events = agent.metrics.get("audit") or []
+    if not isinstance(events, list):
+        events = []
+    return export_agent_chain(agent.id, events)
+
+
 @router.delete("/{agent_id}", dependencies=[Depends(require_api_key)])
 async def undeploy_agent(agent_id: str, http: Request) -> dict[str, str]:
     agent = await database.get_agent(agent_id)
