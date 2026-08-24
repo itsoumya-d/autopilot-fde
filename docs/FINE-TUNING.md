@@ -86,8 +86,32 @@ AUTOPILOT_LLM_ENHANCE=1 LLM_BASE_URL=http://localhost:8000/v1 \
 LLM_MODEL=autopilot-extractor uvicorn backend.main:app --port 8000
 ```
 
+### Hugging Face Inference Providers
+
+HF Inference Providers expose an OpenAI-compatible chat endpoint, so a Hub-
+hosted model can be the enrichment engine without running anything:
+
+```bash
+pip install -U "huggingface_hub[cli]"
+hf auth login   # token with inference-api scope
+
+export AUTOPILOT_LLM_ENHANCE=1 \
+       LLM_BASE_URL=https://router.huggingface.co/v1 \
+       LLM_MODEL=<org>/<model> \
+       LLM_API_KEY=$HF_TOKEN
+```
+
+Push your dataset to the Hub directly from the exporter:
+
+```bash
+PYTHONPATH=. python scripts/export_training_data.py \
+    --format openai --out runs/training/train.jsonl \
+    --push-to-hub <your-org>/autopilot-extractor-train
+```
+
 The enhancer speaks the OpenAI-compatible chat protocol, so **your own
-fine-tuned model becomes the enrichment engine** for the next discovery run.
+fine-tuned model — served by HF, vLLM, or any provider — becomes the
+enrichment engine** for the next discovery run.
 
 ## 3. Close the loop
 

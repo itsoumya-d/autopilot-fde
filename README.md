@@ -89,6 +89,30 @@ keyed by the same risk tiers that scored each step:
 | `EXTERNAL_WRITE` | **structural gate** | Raises `StructuralGateError`; a human sends it |
 | `CRITICAL_TRANSACTION` | **structural gate** | Raises `StructuralGateError`; never automatable |
 
+### Generated agents are first-class LangGraph citizens (v2 codegen)
+
+Emitted workflows use **native `interrupt()`** inside dedicated approval-only
+nodes, wire a persistent checkpointer (`AUTOPILOT_CHECKPOINT_DB` → SqliteSaver,
+in-memory fallback), honor mined edge topology instead of forcing a linear
+chain, and ship a sibling **`langgraph.json`** — so the agent opens directly in
+LangGraph Studio / `langgraph dev`. Export a runnable zip:
+
+```bash
+PYTHONPATH=. python scripts/export_agent_bundle.py <agent_id> --out runs/bundles/agent.zip
+# bundle: graph.py + langgraph.json + README with Command(resume=...) and
+# langchain-mcp-adapters snippets
+```
+
+Execution needs the optional extra — deploying and inspecting do not:
+`pip install -r requirements-agents.txt`.
+
+### Host it free on Hugging Face Spaces
+
+[`spaces/Dockerfile`](spaces/Dockerfile) turns this repo into a public hosted
+MCP endpoint (`https://<org>-<space>.hf.space/mcp`) that earns the Hub's MCP
+badge — one-click install into Claude/Codex/Cursor straight from the Spaces
+directory. Deploy guide: [docs/DEPLOY-HF-SPACE.md](docs/DEPLOY-HF-SPACE.md).
+
 ---
 
 ## 🏗️ System Architecture
@@ -179,7 +203,7 @@ Empirical results across 158 multi-turn interactions evaluated by `scripts/test_
 ## ✅ Verified Functionality & Roadmap
 
 ### 🟢 What Has Been Tested & Fully Verified (100% Passing)
-- [x] **AutoPilot FDE Test Suite**: 104/104 tests passed (`PYTHONPATH=. pytest tests/ -v`) —
+- [x] **AutoPilot FDE Test Suite**: 202/202 tests passed (`PYTHONPATH=. pytest tests/ -v`) —
   covering the discovery→score→deploy lifecycle, the approval boundary, webhook
   signature verification (including strict signed-only mode), the API-key gate,
   credential-free API responses, guarded agent state transitions
@@ -187,7 +211,7 @@ Empirical results across 158 multi-turn interactions evaluated by `scripts/test_
   messages, the simulation rate limiter, APS keyword-classifier fallbacks,
   Monte Carlo reproducibility and safety-metric semantics, WhatsApp payload
   parsing edge cases, the Slack sync normalization rules, and the LLM-enhancer
-  fallback chain — at **91% backend line coverage**, enforced as a CI gate (≥85%).
+  fallback chain — at **100% backend line coverage**, enforced as a CI gate (=100%).
 - [x] **MCP stdio server** (`python -m backend.mcp_server`): protocol handshake
   with Claude Desktop / Claude Code / Codex CLI, read-only workspace tools,
   consent-gated mutations (`AUTOPILOT_MCP_ALLOW_MUTATIONS`), guarded lifecycle
@@ -197,9 +221,14 @@ Empirical results across 158 multi-turn interactions evaluated by `scripts/test_
   read-only formatting, local draft artifacts, operator-configured internal
   webhooks; EXTERNAL_WRITE / CRITICAL_TRANSACTION raise `StructuralGateError`
   by construction.
+- [x] **LangGraph-native codegen (v2)**: native `interrupt()` approval gates,
+  persistent checkpointers, mined-edge topology, emitted `langgraph.json` for
+  Studio / `langgraph dev`, and runnable zip bundle export with
+  `langchain-mcp-adapters` bridge snippets.
 - [x] **Training-data exporter**: deterministic JSONL export of
   message→extraction pairs in OpenAI chat or Alpaca format
-  (`scripts/export_training_data.py`; guide in docs/FINE-TUNING.md).
+  (`scripts/export_training_data.py`; `--push-to-hub` uploads to a Hugging
+  Face dataset repo; guide in docs/FINE-TUNING.md).
 - [x] *HostShift* (a separate repository at `itsoumya-d/hostshift`) has its own
   211-assertion suite; it is not tested from this repo.
 - [x] **Bayesian Activity Extraction**: 30+ multi-pattern rules across 8 enterprise departments with dynamic confidence (0.85–0.98).
@@ -259,7 +288,7 @@ npm run dev
 
 ### 3. Run Test Suites
 ```bash
-# AutoPilot FDE Test Suite (104 assertions, >=85% backend coverage gate)
+# AutoPilot FDE Test Suite (202 assertions, >=85% backend coverage gate)
 PYTHONPATH=. pytest tests/ -v --cov=backend --cov-report=term-missing
 
 # Lint (backend + scripts)

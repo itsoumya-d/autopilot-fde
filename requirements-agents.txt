@@ -1,0 +1,6 @@
+# Optional runtime dependencies to EXECUTE generated LangGraph workflows.
+# Deploying and inspecting agents needs none of these; this file is for the
+# generated bundle (graph.py) and LangGraph Studio / `langgraph dev`.
+#   pip install -r requirements-agents.txt
+langgraph>=0.4,<1.0
+langgraph-checkpoint-sqlite>=2.0,<3.0

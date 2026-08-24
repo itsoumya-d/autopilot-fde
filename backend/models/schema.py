@@ -217,6 +217,9 @@ class GeneratedAgentCode(BaseModel):
     tools: list[str]
     entrypoint: str
     langgraph_spec: dict[str, Any] = Field(default_factory=dict)
+    # A ready-to-save langgraph.json so LangGraph Studio / `langgraph dev`
+    # open the emitted agent without manual wiring.
+    langgraph_json: dict[str, Any] = Field(default_factory=dict)
 
 
 class AgentBranch(BaseModel):
