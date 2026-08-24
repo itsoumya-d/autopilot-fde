@@ -3,6 +3,25 @@
 Every loop iteration starts with cited research. Entries are dated, link
 their sources, and name the implementation each finding fed.
 
+## 2026-08-24 (evening) — Object-centric discovery (v0.9.0 inputs)
+
+**Sources**
+
+- OCEL 2.0 Specification (2023-10-16; JSON/XML/SQLite schemas) —
+  https://ocel-standard.org/2.0/ocel20_specification.pdf
+- OCEL 2.0 JSON format reference — https://ocel-standard.org/specification/formats/json/
+- Carried context: 2026 process-intelligence landscape survey (earlier entry)
+  marking OCPM support as a *hard requirement* for order-to-cash /
+  procure-to-pay classes of processes.
+
+**Findings → implementation mapping**
+
+| Finding | Feeds |
+|---|---|
+| OCEL 2.0 JSON = four top-level arrays (`eventTypes`, `events`, `objectTypes`, `objects`); events carry `relationships: [{objectId, qualifier}]` (E2O); objects may carry relationships too (O2O) | v0.9 `discovery/object_centric.py`: chat-derived activities re-expressed as an OCEL-shaped log with typed object extraction (case, actor, ticket, vendor, amount, email-domain), qualified E2O links, deduplicated co-observed O2O pairs |
+| Single-case (XES-style) mining collapses multi-object processes (invoice + PO + shipment) into linear traces, hiding intersection failures | Per-object traces + per-type summaries expose where objects intersect — the failure points OCPM exists to find |
+| Deterministic, auditable extraction matters more than model cleverness for regulated workflows | Pure-regex extractors with pinned patterns and tests; no LLM in the log-building path |
+
 ## 2026-08-24 (later) — Operable identity & telemetry (v0.8.0 inputs)
 
 **Sources**

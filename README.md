@@ -203,7 +203,7 @@ Empirical results across 158 multi-turn interactions evaluated by `scripts/test_
 ## ✅ Verified Functionality & Roadmap
 
 ### 🟢 What Has Been Tested & Fully Verified (100% Passing)
-- [x] **AutoPilot FDE Test Suite**: 294/294 tests passed (`PYTHONPATH=. pytest tests/ -v`) —
+- [x] **AutoPilot FDE Test Suite**: 311/311 tests passed (`PYTHONPATH=. pytest tests/ -v`) —
   covering the discovery→score→deploy lifecycle, the approval boundary, webhook
   signature verification (including strict signed-only mode), the API-key gate,
   credential-free API responses, guarded agent state transitions
@@ -288,7 +288,7 @@ npm run dev
 
 ### 3. Run Test Suites
 ```bash
-# AutoPilot FDE Test Suite (294 assertions, =100% backend coverage gate)
+# AutoPilot FDE Test Suite (311 assertions, =100% backend coverage gate)
 PYTHONPATH=. pytest tests/ -v --cov=backend --cov-report=term-missing
 
 # Lint (backend + scripts)
@@ -453,6 +453,14 @@ research⇄implement loop ([ROADMAP.md](ROADMAP.md) ·
   a **dead-letter queue** for failed internal actions with an identity-bound
   human-review endpoint (`/api/dlq`), and a deny-by-default webhook
   allowlist (`.autopilot/tools.policy.json`).
+- **v0.9.0 Object-Centric Discovery** *(shipped)* — chat-derived activity
+  re-expressed as an **OCEL 2.0-shaped multi-object log**
+  (`GET /api/processes/object-log`,
+  `scripts/export_object_log.py`): typed objects (case, actor, ticket,
+  vendor, amount, email-domain) with qualified event-to-object links,
+  deduplicated co-observed object-to-object relationships, per-object
+  traces — the intersection view single-case mining collapses.
+  Deterministic regex extraction; no LLM in the log path.
 - **v0.8.0 Operable Identity & Telemetry** *(shipped)* — env-driven **OTLP
   export wiring** (`AUTOPILOT_OTEL_OTLP_ENDPOINT`; standard
   `OTEL_EXPORTER_OTLP_ENDPOINT` honored, graceful no-op without the extra)

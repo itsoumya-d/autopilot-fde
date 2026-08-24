@@ -20,6 +20,25 @@ async def trigger_discovery() -> dict[str, int | str]:
             "processes": processes, "activities": activities}
 
 
+@router.get("/object-log")
+async def object_log(limit: int = 500) -> dict:
+    """OCEL 2.0-shaped multi-object event log over all mined activity.
+
+    Events reference typed objects (case, actor, ticket, vendor, amount,
+    email-domain) with qualified relationships; deterministic extraction, no
+    LLM in the path.
+    """
+    from ..discovery.object_centric import build_object_log
+
+    activities = [
+        activity
+        for process in await database.get_processes()
+        for activity in process.activities
+    ][: max(0, limit)]
+    messages = await database.get_messages()
+    return build_object_log(activities, messages)
+
+
 @router.get("/{process_id}", response_model=Process)
 async def get_process(process_id: str) -> Process:
     process = await database.get_process(process_id)
