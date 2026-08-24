@@ -52,14 +52,25 @@ def verify_whatsapp_signature(request: Request, raw_body: bytes) -> None:
     """Verify Meta's X-Hub-Signature-256 against WHATSAPP_APP_SECRET.
 
     Enforced only when the app secret is configured; without it there is
-    nothing to verify against, which is a configuration gap rather than a
-    pass. Callers should prefer configuring the secret in any shared deploy.
+    nothing to verify against. Set AUTOPILOT_REQUIRE_SIGNED_WEBHOOKS=1 to
+    invert that default in shared deployments: unverified payloads are then
+    rejected with 503 instead of accepted with a warning, so a misconfigured
+    secret fails loudly rather than silently opening an injection vector.
     """
     secret = os.getenv("WHATSAPP_APP_SECRET")
     if not secret:
+        if webhook_verification_required():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=(
+                    "AUTOPILOT_REQUIRE_SIGNED_WEBHOOKS is set but WHATSAPP_APP_SECRET "
+                    "is not configured; refusing unverified webhook payloads."
+                ),
+            )
         logger.warning(
             "WHATSAPP_APP_SECRET is not set; accepting unverified webhook payload. "
-            "Configure it to enable signature verification."
+            "Configure it to enable signature verification, or set "
+            "AUTOPILOT_REQUIRE_SIGNED_WEBHOOKS=1 to refuse unsigned payloads."
         )
         return
     header = request.headers.get(SIGNATURE_HEADER, "")
@@ -75,3 +86,62 @@ def verify_whatsapp_signature(request: Request, raw_body: bytes) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Webhook signature verification failed.",
         )
+
+
+def webhook_verification_required() -> bool:
+    """True when unsigned webhook payloads must be refused outright."""
+    return os.getenv("AUTOPILOT_REQUIRE_SIGNED_WEBHOOKS", "").strip() == "1"
+
+
+def cors_origins_from_env() -> list[str]:
+    """Browser origins allowed by CORS, from AUTOPILOT_CORS_ORIGINS.
+
+    Comma-separated; defaults to the local Next.js dev server. In production
+    set this to your dashboard origin explicitly -- the default exists for
+    first-run ergonomics, not as a deployment recommendation.
+    """
+    raw = os.getenv("AUTOPILOT_CORS_ORIGINS", "")
+    origins = [origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()]
+    return origins or ["http://localhost:3000", "http://127.0.0.1:3000"]
+
+
+class RateLimiter:
+    """In-process sliding-window limiter for expensive endpoints.
+
+    Keyed by client IP, no external dependencies, sized for a single-process
+    demo service -- the honest scope of this backend. Set
+    AUTOPILOT_RATE_LIMIT_PER_MIN=0 to disable (tests, benchmarks).
+    """
+
+    def __init__(self) -> None:
+        self._hits: dict[str, list[float]] = {}
+
+    def check(self, key: str, limit_per_min: int | None = None) -> None:
+        import time
+
+        if limit_per_min is None:
+            limit_per_min = int(os.getenv("AUTOPILOT_RATE_LIMIT_PER_MIN", "60"))
+        if limit_per_min <= 0:
+            return
+        now = time.monotonic()
+        window = self._hits.setdefault(key, [])
+        cutoff = now - 60.0
+        while window and window[0] < cutoff:
+            window.pop(0)
+        if len(window) >= limit_per_min:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Rate limit exceeded ({limit_per_min}/min). "
+                       "Retry shortly or raise AUTOPILOT_RATE_LIMIT_PER_MIN.",
+            )
+        window.append(now)
+
+
+rate_limiter = RateLimiter()
+
+
+def client_key(request: Request) -> str:
+    """Best-effort client identity for rate limiting behind no proxy."""
+    if request.client and request.client.host:
+        return request.client.host
+    return "unknown"

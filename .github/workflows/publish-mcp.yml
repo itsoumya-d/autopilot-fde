@@ -1,0 +1,42 @@
+# Publish AutoPilot FDE's MCP server metadata to the Official MCP Registry.
+# Runs only on version tags; registry outages never block a release.
+#
+# Requires no stored secrets: authentication uses GitHub OIDC, and the
+# namespace (io.github.itsoumya-d/*) is proven by this repository itself.
+
+name: publish-mcp
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  mcp-registry:
+    name: Publish to Official MCP Registry
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" \
+            | tar xz mcp-publisher
+
+      - name: Stamp version from tag into server.json
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          jq --arg v "$VERSION" '.version = $v' autopilot-fde/server.json > /tmp/server.json
+          mv /tmp/server.json autopilot-fde/server.json
+
+      - name: Authenticate via GitHub OIDC
+        working-directory: autopilot-fde
+        run: ../mcp-publisher login github-oidc
+
+      - name: Publish
+        working-directory: autopilot-fde
+        run: ../mcp-publisher publish

@@ -1,0 +1,27 @@
+# Create a GitHub Release with generated notes for every version tag.
+
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  github-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create release with generated notes
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: |
+            AutoPilot FDE ${{ github.ref_name }}.
+
+            Highlights, verification steps and upgrade notes live in README.md.
+            The MCP server ships in two transports: stdio (`python -m backend.mcp_server`)
+            and Streamable-HTTP (`POST /mcp` on the dashboard API).

@@ -78,11 +78,12 @@ for p, s in zip(processes[:3], scores[:3]):
 # 7. AUTONOMOUS LANGGRAPH CODE GENERATION
 factory = AgentFactory()
 print("\n🤖 Step 7: Autonomous LangGraph Agent Code Generation:")
-top_process = processes[0]
-top_score = scores[0]
+# Generate for the TOP-SCORED process, not an arbitrary one: processes are
+# sorted by name, scores by APS -- zipping them blindly pairs the wrong rows.
+top_process, top_score = max(zip(processes, scores), key=lambda pair: pair[1].score)
 agent = factory.create_agent(
     process=top_process,
-    config=DeploymentConfig(steps=top_score.eligible_steps, hitl_required=True),
+    config=DeploymentConfig(enabled_steps=top_score.eligible_steps, approval_required=True),
 )
 print(f"   Generated Agent: {agent.name}")
 print(f"   LangGraph Specs: {agent.generated_code.langgraph_spec}")

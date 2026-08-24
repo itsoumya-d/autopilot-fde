@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS messages (
     thread_id TEXT,
     metadata TEXT NOT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_messages_channel_ts ON messages (channel_id, timestamp);
 CREATE TABLE IF NOT EXISTS processes (
     id TEXT PRIMARY KEY,
     payload TEXT NOT NULL
@@ -159,21 +160,46 @@ async def create_messages(messages: Iterable[Message]) -> None:
     await db.commit()
 
 
-async def get_messages(channel_id: str | None = None) -> list[Message]:
+async def get_messages(
+    channel_id: str | None = None,
+    limit: int | None = None,
+    offset: int = 0,
+) -> list[Message]:
+    """Messages in chronological order, optionally scoped and paginated.
+
+    `limit=None` keeps the legacy load-everything behavior for discovery; the
+    API layer always passes explicit bounds so a browser cannot pull an
+    unbounded result set.
+    """
     query = "SELECT id, channel_id, sender, content, timestamp, thread_id, metadata FROM messages"
-    values: tuple[object, ...] = ()
+    values: list[object] = []
     if channel_id:
         query += " WHERE channel_id = ?"
-        values = (channel_id,)
+        values.append(channel_id)
     query += " ORDER BY timestamp"
+    if limit is not None:
+        query += " LIMIT ? OFFSET ?"
+        values.extend([limit, max(0, offset)])
     db = await _db()
-    cursor = await db.execute(query, values)
+    cursor = await db.execute(query, tuple(values))
     rows = await cursor.fetchall()
     return [
         Message(id=row[0], channel_id=row[1], sender=row[2], content=row[3],
                 timestamp=row[4], thread_id=row[5], metadata=json.loads(row[6]))
         for row in rows
     ]
+
+
+async def count_messages(channel_id: str | None = None) -> int:
+    query = "SELECT COUNT(*) FROM messages"
+    values: tuple[object, ...] = ()
+    if channel_id:
+        query += " WHERE channel_id = ?"
+        values = (channel_id,)
+    db = await _db()
+    cursor = await db.execute(query, values)
+    row = await cursor.fetchone()
+    return int(row[0]) if row else 0
 
 
 async def latest_message_timestamp(channel_id: str) -> datetime | None:

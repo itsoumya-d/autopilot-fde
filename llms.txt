@@ -1,0 +1,30 @@
+# AutoPilot FDE
+
+> Autonomous Forward Deployed Engineer: mines business workflows from
+> Slack/WhatsApp chat streams, scores automation potential (APS) via graph
+> transition entropy, Monte-Carlo-simulates ROI, and deploys human-gated
+> LangGraph agents with audited approvals.
+
+AutoPilot FDE is the deployment-side counterpart of the HostShift benchmark.
+It reads what your team actually says, finds the repeatable workflows hiding
+in it, prices the automation opportunity in dollars, simulates straight-through
+rates before you spend a credit, and emits typed LangGraph state machines whose
+critical steps are structurally human-gated.
+
+Connect it to Claude Desktop, Claude Code, OpenAI Codex CLI or Cursor via its
+MCP server (stdio **and** streamable HTTP). Fine-tune your own extractor model
+on discovered data and serve it back as the enrichment engine.
+
+## Documentation
+
+- [README](README.md): architecture, math model, verified features, security model, API reference
+- [One-step install](README.md#-quick-start): `bash install.sh --run` (or `docker compose up --build`)
+- [Connect your coding agent](README.md#-connect-your-coding-agent-mcp): per-client MCP configs for Claude/Codex/Cursor
+- [Safe tool adapters](backend/deployment/tool_adapters.py): risk-tiered dispatch; external/critical tiers are structural gates
+- [Train your own model](docs/FINE-TUNING.md): export JSONL → OpenAI / Together / local LoRA → serve back
+- [Deploy to Hugging Face Spaces](docs/DEPLOY-HF-SPACE.md): free hosted MCP endpoint with one-click badge
+
+## Optional
+
+- [Customizing for your organization](README.md#-fine-tuning-it-for-your-organization): keyword tables, economics, safety policy
+- [HostShift sibling project](https://github.com/itsoumya-d/hostshift): measures cross-platform portability of LLM-generated UIs (Host-Lock Index)

@@ -1,0 +1,15 @@
+# Frontend image: Next.js dashboard talking to the backend service.
+FROM node:22-slim AS build
+WORKDIR /app/frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --silent || npm install --silent
+COPY frontend/ .
+ENV NEXT_PUBLIC_API_URL=http://backend:8000/api
+RUN npm run build
+
+FROM node:22-slim
+WORKDIR /app/frontend
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
+COPY --from=build /app/frontend ./
+EXPOSE 3000
+CMD ["npm", "run", "start"]

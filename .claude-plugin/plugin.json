@@ -1,0 +1,11 @@
+{
+  "name": "autopilot-fde",
+  "description": "Forward-deployed engineering copilot: mine business workflows from Slack/WhatsApp streams, score automation potential, simulate ROI, and deploy human-gated LangGraph agents.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Soumya Debnath"
+  },
+  "homepage": "https://github.com/itsoumya-d/hostshift",
+  "license": "FSL-1.1-Apache-2.0",
+  "keywords": ["fde", "process-mining", "automation", "langgraph", "mcp"]
+}

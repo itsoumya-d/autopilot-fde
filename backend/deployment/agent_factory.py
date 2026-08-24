@@ -120,6 +120,8 @@ from typing import TypedDict, Annotated, List, Dict, Any
 from langgraph.graph import StateGraph, END
 import operator
 
+from backend.deployment.tool_adapters import execute_agent_step as _dispatch_tool_step
+
 class WorkflowState(TypedDict):
     case_id: str
     payload: Dict[str, Any]
@@ -136,13 +138,10 @@ class HumanApprovalRequired(Exception):
         self.message = message
 
 def execute_agent_step(step_name: str, context: dict) -> dict:
-    # Wire this adapter to your real tool integrations (CRM, ITSM, ERP...).
-    # It deliberately has no default success value: an unimplemented step must
-    # fail loudly instead of pretending the work happened.
-    raise NotImplementedError(
-        f"No tool integration is configured for step '{{step_name}}'. "
-        "Implement execute_agent_step before running this workflow."
-    )
+    # Dispatches through backend.deployment.tool_adapters: risk-tiered safe
+    # adapters (read-only, draft writing, internal webhook). EXTERNAL_WRITE and
+    # CRITICAL_TRANSACTION tiers raise StructuralGateError by construction.
+    return _dispatch_tool_step(step_name=step_name, context=context)
 
 def request_human_approval(step_name: str, context: dict) -> dict:
     # Real Human-in-the-Loop gate: this checkpoint HALTS the branch until a

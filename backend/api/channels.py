@@ -1,3 +1,4 @@
+import hmac
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -6,7 +7,7 @@ from pydantic import BaseModel, Field
 from .. import database
 from ..ingestion.slack_connector import SlackConfigurationError, sync_channel
 from ..ingestion.whatsapp_connector import parse_webhook_payload
-from ..models.schema import Channel, ChannelPublic, ChannelStatus, ChannelType
+from ..models.schema import Channel, ChannelPublic, ChannelStatus, ChannelType, Message
 from ..security import require_api_key, verify_whatsapp_signature
 from ..services import run_discovery
 
@@ -49,6 +50,18 @@ async def get_channel(channel_id: str) -> Channel:
     return channel
 
 
+@router.get("/{channel_id}/messages", response_model=list[Message])
+async def list_channel_messages(
+    channel_id: str,
+    limit: int = Query(default=200, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+) -> list[Message]:
+    """Paginated message history for one channel, chronological order."""
+    if not await database.get_channel(channel_id):
+        raise HTTPException(status_code=404, detail="Channel not found")
+    return await database.get_messages(channel_id, limit=limit, offset=offset)
+
+
 @router.get("/whatsapp/webhook")
 async def verify_whatsapp_webhook(
     mode: str | None = Query(default=None, alias="hub.mode"),
@@ -62,7 +75,14 @@ async def verify_whatsapp_webhook(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="WHATSAPP_VERIFY_TOKEN is not configured; webhook subscription is disabled.",
         )
-    if mode == "subscribe" and token == expected and challenge is not None:
+    # compare_digest, not ==: the handshake endpoint is unauthenticated by
+    # design, so its token check must not leak timing information.
+    if (
+        mode == "subscribe"
+        and challenge is not None
+        and token is not None
+        and hmac.compare_digest(token.encode(), expected.encode())
+    ):
         return challenge
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Webhook verification failed")
 

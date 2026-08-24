@@ -50,12 +50,30 @@ def test_monte_carlo_simulator():
     assert result.time_to_resolve_minutes_after < result.time_to_resolve_minutes_before
 
 
+def test_safety_interceptions_are_total_not_floor_divided():
+    """safety_violations_caught used to be `intercepted // runs`, which read as
+    0 unless every single run intercepted a violation. It must be the TOTAL
+    across all runs, deterministic for a fixed seed, and equal to the number
+    of blocked steps executed per run times the run count."""
+    processes, scores = _scored_processes()
+    pairs = [(p, s) for p, s in zip(processes, scores) if s.blocked_steps]
+    assert pairs, "demo data should contain at least one process with blocked steps"
+    process, score = pairs[0]
+    blocked_per_run = sum(
+        1 for step in score.step_feasibilities
+        if (not step.is_automatable)
+        or step.action_type.value == "critical_transaction"
+    )
+    result = ProcessSimulator().simulate(process, score, runs=200, seed=7)
+    assert result.safety_violations_caught == blocked_per_run * 200
+
+
 def test_agent_factory_code_generation():
     processes, scores = _scored_processes()
     factory = AgentFactory()
     agent = factory.create_agent(
         process=processes[0],
-        config=DeploymentConfig(steps=scores[0].eligible_steps, hitl_required=True),
+        config=DeploymentConfig(enabled_steps=scores[0].eligible_steps, approval_required=True),
     )
     assert agent.generated_code is not None
     assert "class WorkflowState(TypedDict):" in agent.generated_code.python_code

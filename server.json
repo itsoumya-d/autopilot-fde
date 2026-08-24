@@ -1,0 +1,38 @@
+{
+  "$schema": "https://cdn.jsdelivr.net/npm/@modelcontextprotocol/server-schema@latest/schema.json",
+  "name": "io.github.itsoumya-d/autopilot-fde",
+  "display_name": "AutoPilot FDE",
+  "description": "Forward-deployed engineering copilot: mines business workflows from Slack/WhatsApp streams, scores automation potential (APS) via graph entropy, Monte-Carlo-simulates ROI, and deploys human-gated LangGraph agents. Read-only discovery tools are open; mutating deploy/approve tools are operator-gated.",
+  "version": "0.3.0",
+  "homepage": "https://github.com/itsoumya-d/autopilot-fde",
+  "repository": {
+    "url": "https://github.com/itsoumya-d/autopilot-fde"
+  },
+  "license": "FSL-1.1-Apache-2.0",
+  "authors": [
+    {"name": "Soumya Debnath"}
+  ],
+  "packages": [
+    {
+      "registry_type": "github",
+      "identifier": "itsoumya-d/autopilot-fde",
+      "transport": {
+        "type": "stdio",
+        "command": "python",
+        "args": ["-m", "backend.mcp_server"]
+      }
+    }
+  ],
+  "transports": {
+    "stdio": {
+      "command": "python",
+      "args": ["-m", "backend.mcp_server"],
+      "env": {}
+    },
+    "streamable-http": {
+      "url": "/mcp",
+      "note": "Served by the FastAPI app (uvicorn backend.main:app); hosted demo available as a Hugging Face Space."
+    }
+  },
+  "keywords": ["fde", "process-mining", "automation", "langgraph", "mcp", "business-processes"]
+}

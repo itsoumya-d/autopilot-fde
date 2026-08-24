@@ -90,6 +90,12 @@ class ProcessSimulator:
         # Aggregate Metrics
         str_pct = round((straight_through_count / runs) * 100.0, 1)
         escalation_pct = round((escalation_count / runs) * 100.0, 1)
+        # Total critical-step interceptions across ALL simulated runs (not a
+        # per-run average): this is the quantity "how many dangerous steps did
+        # the gate stop" refers to. The gate is structural -- blocked steps can
+        # never execute automatically -- so the count is deterministic given
+        # the step plan.
+        safety_interceptions_total = safety_violations_intercepted
 
         # Average duration after automation per run
         avg_after_minutes = round(
@@ -131,5 +137,5 @@ class ProcessSimulator:
             simulated_bottleneck_step=bottleneck_step,
             time_to_resolve_minutes_before=round(manual_duration, 1),
             time_to_resolve_minutes_after=avg_after_minutes,
-            safety_violations_caught=safety_violations_intercepted // runs,
+            safety_violations_caught=safety_interceptions_total,
         )

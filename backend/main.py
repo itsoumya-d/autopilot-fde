@@ -6,7 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import database
 from .api import agents, channels, dashboard, processes, scores
-from .security import api_key_configured
+from .mcp_http import router as mcp_http_router
+from .security import api_key_configured, cors_origins_from_env
 from .services import ensure_demo_workspace, run_discovery
 
 logging.basicConfig(level=logging.INFO)
@@ -31,12 +32,14 @@ async def lifespan(_: FastAPI):
 app = FastAPI(
     title="AutoPilot FDE",
     description="Evidence-backed workflow discovery and human-approved draft automation.",
-    version="0.2.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    # Overridable via AUTOPILOT_CORS_ORIGINS (comma-separated). The default
+    # covers only the local Next.js dev server; shared deployments must set it.
+    allow_origins=cors_origins_from_env(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -46,6 +49,7 @@ app.include_router(channels.router, prefix="/api/channels", tags=["Channels"])
 app.include_router(processes.router, prefix="/api/processes", tags=["Processes"])
 app.include_router(scores.router, prefix="/api/scores", tags=["Scoring"])
 app.include_router(agents.router, prefix="/api/agents", tags=["Agents"])
+app.include_router(mcp_http_router)
 
 
 @app.get("/health", tags=["Health"])

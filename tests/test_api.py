@@ -5,6 +5,7 @@ Covers the security posture (webhook signatures, API-key gate, credential
 exclusion), the full discovery->score->deploy->approve->draft lifecycle, and
 the structural approval boundary (AUTONOMOUS is unreachable)."""
 
+import asyncio
 import hashlib
 import hmac
 import os
@@ -28,16 +29,18 @@ class ApiTestCase(unittest.TestCase):
         self._db = database
         self._tmp = tempfile.TemporaryDirectory()
         database.DB_PATH = pathlib.Path(self._tmp.name) / "test.db"
-        # Reset the shared handle so each test gets its own file.
-        self._async = __import__("asyncio")
-        self._async.get_event_loop().run_until_complete(database.close_db()) if False else None
+        # Reset the shared handle so each test gets its own file. The lifespan
+        # shutdown in tearDown closes the connection this test creates.
         self.client = TestClient(main_mod.app)
-        # Lifespan runs on first request context via context manager:
         self._ctx = self.client.__enter__()
 
     def tearDown(self):
         self._ctx.__exit__(None, None, None)
-        self._async.new_event_loop().run_until_complete(self._db.close_db())
+        loop = asyncio.new_event_loop()
+        try:
+            loop.run_until_complete(self._db.close_db())
+        finally:
+            loop.close()
         self._tmp.cleanup()
 
     def post(self, path, **kw):
