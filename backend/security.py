@@ -145,3 +145,48 @@ def client_key(request: Request) -> str:
     if request.client and request.client.host:
         return request.client.host
     return "unknown"
+
+
+# ── Per-agent workload identity (v0.6 Governed Autonomy) ────────────────────
+#
+# The 2026 enterprise posture is explicit: an agent must carry a verifiable
+# workload identity, not just an API key in a config file. AutoPilot FDE
+# issues each deployed branch an HMAC-SHA256 token derived from the server
+# secret and the agent id; mutating surfaces can require it and attribute the
+# action to that exact branch in the audit trail.
+#
+# Threat model, honestly: HMAC proves possession of a shared secret, not
+# uniqueness of the requester — the right strength for a self-hosted control
+# plane that already trusts AUTOPILOT_API_KEY. Rotation = redeploy (stop +
+# fresh deploy), which keeps the story simple and auditable.
+
+AGENT_TOKEN_HEADER = "X-Autopilot-Agent-Token"
+
+
+def _identity_secret() -> str:
+    """Server-side signing secret; falls back to AUTOPILOT_API_KEY."""
+    return (os.getenv("AUTOPILOT_AGENT_SECRET")
+            or os.getenv("AUTOPILOT_API_KEY")
+            or "")
+
+
+def issue_agent_token(agent_id: str, secret: str | None = None) -> str | None:
+    """Token for one deployed branch; None when no server secret is set.
+
+    A deployment without any secret is explicitly local-demo mode: tokens are
+    not issued rather than forged from a public constant.
+    """
+    key = secret if secret is not None else _identity_secret()
+    if not key:
+        return None
+    return hmac.new(key.encode(), f"agent:{agent_id}".encode(),
+                    hashlib.sha256).hexdigest()
+
+
+def verify_agent_token(agent_id: str, provided: str | None,
+                       secret: str | None = None) -> bool:
+    """Constant-time verification; False when anything is missing."""
+    expected = issue_agent_token(agent_id, secret)
+    if not expected or not provided:
+        return False
+    return hmac.compare_digest(expected, provided)

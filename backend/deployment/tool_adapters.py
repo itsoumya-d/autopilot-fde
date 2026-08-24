@@ -21,6 +21,7 @@ talk a generated workflow past it.
 """
 
 import json
+import logging
 import os
 import re
 from datetime import UTC, datetime
@@ -33,6 +34,9 @@ import httpx
 from ..models.schema import StepActionType
 from ..observability.tracing import tool_span
 from ..scoring.aps_engine import APSEngine
+from . import execution_guards as guards
+
+logger = logging.getLogger(__name__)
 
 _DRAFT_DIR_ENV = "AUTOPILOT_DRAFT_DIR"
 _DEFAULT_TIMEOUT_SECONDS = 10.0
@@ -45,6 +49,19 @@ class StructuralGateError(RuntimeError):
     Raised for EXTERNAL_WRITE and CRITICAL_TRANSACTION steps regardless of any
     configuration: those steps require a human, by construction.
     """
+
+
+class WebhookDispatchError(RuntimeError):
+    """The webhook endpoint could not be reached or rejected the call.
+
+    Wraps the original transport/HTTP error; this is the only adapter failure
+    class that dead-letters — configuration rejections (bad URL, loopback,
+    policy denial) never enter the queue.
+    """
+
+    def __init__(self, original: Exception):
+        self.original = original
+        super().__init__(str(original))
 
 
 def classify_step(step_name: str) -> StepActionType:
@@ -75,14 +92,23 @@ def execute_agent_step(
     This is the function generated LangGraph code imports. An unimplemented
     step must fail loudly instead of pretending the work happened.
 
-    Every dispatch emits an OTel ``gen_ai.*`` span (structured no-op when the
-    observability extra is not installed); token usage attaches via
-    ``context["token_usage"] = (input_tokens, output_tokens)`` when known.
+    Governance (v0.6): per-agent quota, optional idempotency replay via
+    ``context["idempotency_key"]``, dead-letter capture for failed internal
+    webhooks, and the tool-governance webhook allowlist. Every dispatch also
+    emits an OTel ``gen_ai.*`` span (structured no-op without the extra);
+    token usage attaches via ``context["token_usage"] = (in, out)``.
     """
     context = dict(context or {})
     action_type = classify_step(step_name)
     handler = _HANDLERS.get(action_type)
     usage = context.pop("token_usage", None)
+    idem_key = context.pop("idempotency_key", None)
+    if idem_key:
+        prior = guards.get_idempotent_result(idem_key)
+        if prior is not None:
+            return {**prior, "status": "replayed",
+                    "replayed_from": idem_key}
+    guards.check_agent_quota(agent_id)
     with tool_span(f"adapter.{action_type.value}", step_name=step_name,
                    agent_id=agent_id) as span:
         if handler is None:
@@ -93,6 +119,19 @@ def execute_agent_step(
             )
         try:
             result = handler(step_name, context)
+        except WebhookDispatchError as error:
+            span.record_exception(error)
+            # Dead-letter only genuine dispatch failures; a broken guard
+            # store must never mask the original step error.
+            try:
+                guards.dead_letter_push(
+                    agent_id=agent_id, step_name=step_name,
+                    error=f"{type(error.original).__name__}: {error}",
+                    payload=context)
+            except Exception as dlq_error:  # noqa: BLE001
+                logger.warning("dead-letter store unavailable (%s); "
+                               "entry dropped", dlq_error)
+            raise error.original from error
         except Exception as error:
             span.record_exception(error)
             raise
@@ -102,6 +141,8 @@ def execute_agent_step(
     result.setdefault("step_name", step_name)
     result.setdefault("action_type", action_type.value)
     result["executed_at"] = datetime.now(UTC).isoformat()
+    if idem_key:
+        guards.record_idempotent(idem_key, result)
     return result
 
 
@@ -156,6 +197,7 @@ def _resolve_webhook_url(context: dict[str, Any]) -> str:
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https") or not parsed.hostname:
         raise ValueError(f"Refusing non-HTTP webhook URL: {url!r}")
+    guards.enforce_webhook_policy(url)
     if parsed.hostname in ("localhost", "127.0.0.1", "0.0.0.0", "::1") and not os.getenv(
         "AUTOPILOT_ALLOW_LOCAL_WEBHOOKS"
     ):
@@ -177,8 +219,11 @@ def _post_webhook(step_name: str, context: dict[str, Any]) -> dict[str, Any]:
     token = os.getenv("AUTOPILOT_WEBHOOK_BEARER_TOKEN")
     if token:
         headers["Authorization"] = f"Bearer {token}"
-    with httpx.Client(timeout=_DEFAULT_TIMEOUT_SECONDS, follow_redirects=False) as client:
-        response = client.post(url, content=body, headers=headers)
+    try:
+        with httpx.Client(timeout=_DEFAULT_TIMEOUT_SECONDS, follow_redirects=False) as client:
+            response = client.post(url, content=body, headers=headers)
+    except Exception as error:
+        raise WebhookDispatchError(error) from error
     return {
         "status": "dispatched",
         "adapter": "internal_webhook",
