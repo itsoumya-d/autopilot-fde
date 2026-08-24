@@ -483,3 +483,21 @@ class TestSubprocessWire(McpWorkspaceTestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestObjectAlertsTool(McpWorkspaceTestCase):
+    def test_object_alerts_roundtrip_and_limit_guard(self):
+        response = self.rpc("tools/call", {"name": "object_alerts",
+                                           "arguments": {}})
+        self.assertNotIn("isError", response["result"])
+        payload = json.loads(response["result"]["content"][0]["text"])
+        self.assertEqual(payload["count"], len(payload["alerts"]))
+
+        bad = self.rpc("tools/call", {"name": "object_alerts",
+                                      "arguments": {"limit": -1}})
+        self.assertTrue(bad["result"]["isError"])
+        self.assertIn("limit", bad["result"]["content"][0]["text"])
+
+    def test_tools_list_includes_object_alerts(self):
+        names = {t["name"] for t in self.rpc("tools/list")["result"]["tools"]}
+        self.assertIn("object_alerts", names)

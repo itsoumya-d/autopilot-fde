@@ -44,7 +44,7 @@ from typing import Any
 PROTOCOL_VERSION = "2024-11-05"
 SUPPORTED_VERSIONS = ("2025-06-18", "2025-03-26", "2024-11-05")
 SERVER_NAME = "autopilot-fde"
-SERVER_VERSION = "0.10.0"
+SERVER_VERSION = "0.11.0"
 
 MUTATIONS_ENV = "AUTOPILOT_MCP_ALLOW_MUTATIONS"
 MCP_ACTOR = "mcp-agent"
@@ -374,6 +374,27 @@ def _schema(properties: dict[str, dict], required: list[str] | None = None) -> d
     }
 
 
+async def tool_object_alerts(args: dict[str, Any]) -> dict[str, Any]:
+    """Deterministic governance alerts over the multi-object log."""
+    from backend import database
+    from backend.discovery.alerts import evaluate_alerts
+    from backend.discovery.object_centric import build_object_log
+
+    limit = int(args.get("limit", 500))
+    if not 0 <= limit <= 10_000:
+        raise ToolError("limit must be between 0 and 10000")
+    activities = [
+        activity
+        for process in await database.get_processes()
+        for activity in process.activities
+    ][:limit]
+    messages = await database.get_messages()
+    log = build_object_log(activities, messages)
+    alerts = evaluate_alerts(log)
+    return {"count": len(alerts),
+            "alerts": alerts}
+
+
 READ_TOOLS: list[dict[str, Any]] = [
     {
         "name": "dashboard_summary",
@@ -417,6 +438,17 @@ READ_TOOLS: list[dict[str, Any]] = [
             "runs": {"type": "integer", "minimum": 100, "maximum": 10000},
             "confidence_threshold": {"type": "number", "minimum": 0.5, "maximum": 0.99},
         }, ["process_id"]),
+    },
+    {
+        "name": "object_alerts",
+        "description": (
+            "Deterministic governance alerts over the multi-object log: "
+            "shared-object-across-cases, large amounts, hub actors. "
+            "Severity-ordered with evidence event ids."
+        ),
+        "inputSchema": _schema({
+            "limit": {"type": "integer", "minimum": 0, "maximum": 10000},
+        }),
     },
     {
         "name": "list_channels",
@@ -478,6 +510,7 @@ HANDLERS = {
     "get_scores": tool_get_scores,
     "recommendations": tool_recommendations,
     "simulate_process": tool_simulate_process,
+    "object_alerts": tool_object_alerts,
     "list_channels": tool_list_channels,
     "list_agents": tool_list_agents,
     "run_discovery": tool_run_discovery,

@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from .. import database
@@ -37,6 +39,27 @@ async def object_log(limit: int = 500) -> dict:
     ][: max(0, limit)]
     messages = await database.get_messages()
     return build_object_log(activities, messages)
+
+
+@router.get("/object-alerts")
+async def object_alerts(limit: int = 500) -> dict:
+    """Deterministic governance alerts over the multi-object log."""
+    from ..discovery.alerts import evaluate_alerts
+    from ..discovery.object_centric import build_object_log
+
+    activities = [
+        activity
+        for process in await database.get_processes()
+        for activity in process.activities
+    ][: max(0, limit)]
+    messages = await database.get_messages()
+    log = build_object_log(activities, messages)
+    alerts = evaluate_alerts(log)
+    return {
+        "count": len(alerts),
+        "policy_source": os.getenv("AUTOPILOT_ALERTS_POLICY", "") or "defaults",
+        "alerts": alerts,
+    }
 
 
 @router.get("/{process_id}", response_model=Process)

@@ -3,6 +3,29 @@
 Every loop iteration starts with cited research. Entries are dated, link
 their sources, and name the implementation each finding fed.
 
+## 2026-08-24 (night) — Intersection alerts over the object log (v0.11.0 inputs)
+
+**Sources**
+
+- *Detecting Anomalous Events in Object-centric Business Process Event Logs*
+  (arXiv 2403.00775) — flattening an OCEL onto one case notion *artificially
+  introduces* deficiency/convergence/divergence anomalies; object-centric
+  analysis avoids the gap.
+- *Using object-centric process mining to analyze procurement* (Springer,
+  2023) — P2P objects interlink across cases; PQ goals target outlier
+  patterns with transparent, rule-based characterization.
+- *Root Cause Analysis Using Rule Mining on OCELs* (RWTH) — association rules
+  over cross-object patterns give actionable, interpretable signals.
+
+**Findings → implementation mapping**
+
+| Finding | Feeds |
+|---|---|
+| Shared non-case objects spanning multiple cases are the canonical divergence/bottleneck signal in OCPM | v0.11 rule `shared_object_across_cases` (warn) |
+| Point anomalies on event attributes (e.g., amounts) are the simplest auditable class | v0.11 rule `large_amount_observed` (critical), threshold-configurable |
+| Hub actors concentrating many events indicate workload/escalation concentration | v0.11 rule `hub_actor` (info) |
+| Transparent deterministic rules precede ML in regulated settings | Pure-Python rules over `build_object_log` output; optional policy file for thresholds; no LLM |
+
 ## 2026-08-24 (evening) — Object-centric discovery (v0.9.0 inputs)
 
 **Sources**
