@@ -329,13 +329,23 @@ class TestGuardStorePath(GuardWorkspaceTestCase):
 
 class TestPolicyStatFailure(GuardWorkspaceTestCase):
     def test_unreadable_policy_stat_disables_restriction(self):
+        from unittest import mock
 
-        path = pathlib.Path(self._tmp.name) / "tools.policy.json"
-        path.write_text(json.dumps({"allowed_webhook_hosts": ["itsm.internal"]}))
-        os.environ["AUTOPILOT_TOOLS_POLICY"] = str(path)
+        class FakePath(str):
+            """exists()-True / stat()-raising stand-in, version-proof."""
+
+            def expanduser(self):
+                return self
+
+            def exists(self):
+                return True
+
+            def stat(self):
+                raise OSError("gone")
+
+        os.environ["AUTOPILOT_TOOLS_POLICY"] = "/fake/tools.policy.json"
         guards._policy_cache.update(path=None, mtime=None, hosts=None)
-        with mock.patch.object(pathlib.Path, "stat",
-                               side_effect=OSError("gone")):
+        with mock.patch.object(guards, "Path", FakePath):
             self.assertIsNone(guards._policy_hosts())
 
 
