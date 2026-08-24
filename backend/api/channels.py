@@ -1,4 +1,5 @@
 import hmac
+import json
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -8,7 +9,11 @@ from .. import database
 from ..ingestion.slack_connector import SlackConfigurationError, sync_channel
 from ..ingestion.whatsapp_connector import parse_webhook_payload
 from ..models.schema import Channel, ChannelPublic, ChannelStatus, ChannelType, Message
-from ..security import require_api_key, verify_whatsapp_signature
+from ..security import (
+    require_api_key,
+    verify_slack_signature,
+    verify_whatsapp_signature,
+)
 from ..services import run_discovery
 
 router = APIRouter()
@@ -39,6 +44,21 @@ async def sync_slack(request: SlackSyncRequest) -> dict[str, int | str]:
     await database.create_messages(messages)
     processes, activities = await run_discovery()
     return {"message": "Read-only Slack sync completed", "messages_seen": len(messages),
+            "processes": processes, "activities": activities}
+
+
+@router.post("/email/sync", dependencies=[Depends(require_api_key)])
+async def sync_email() -> dict[str, int | str]:
+    """Poll the configured IMAP mailbox read-only, then rediscover."""
+    from ..ingestion.email_connector import EmailConfigurationError, sync_email_messages
+
+    try:
+        messages = await sync_email_messages()
+    except EmailConfigurationError as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(error)) from error
+    processes, activities = await run_discovery()
+    return {"message": "Read-only email sync completed", "messages_seen": len(messages),
             "processes": processes, "activities": activities}
 
 
@@ -117,3 +137,63 @@ async def whatsapp_webhook(request: Request) -> dict[str, int | str]:
         return {"message": "WhatsApp messages ingested", "messages_seen": len(messages),
                 "processes": processes, "activities": activities}
     return {"message": "No ingestible messages in payload", "messages_seen": 0}
+
+
+@router.post("/slack/interactive")
+async def slack_interactive(request: Request) -> dict[str, str]:
+    """One-click human approvals from Slack buttons (interactive payloads).
+
+    Button value format: ``approve:{agent_id}``. The action is verified
+    against SLACK_SIGNING_SECRET when configured, then routed through the
+    same guarded approve transition as the dashboard — audited with the
+    Slack user as the actor.
+    """
+    from datetime import UTC, datetime
+
+    from ..models.schema import AgentStatus as _AS
+
+    raw = await request.body()
+    verify_slack_signature(request, raw)
+    try:
+        payload = json.loads(raw.decode() or "{}")
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail="Malformed payload") from error
+    body_raw = payload.get("payload")
+    try:
+        interactive = json.loads(body_raw) if isinstance(body_raw, str) else body_raw or {}
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail="Malformed interactive payload") from error
+    if not isinstance(interactive, dict):
+        raise HTTPException(status_code=422, detail="Interactive payload must be an object")
+
+    actions = (interactive.get("actions") or [])
+    if not actions:
+        raise HTTPException(status_code=422, detail="No action in payload")
+    action = actions[0]
+    if action.get("action_id") != "agent_approve":
+        raise HTTPException(status_code=422, detail="Unsupported action_id")
+    value = str(action.get("value", ""))
+    if not value.startswith("approve:"):
+        raise HTTPException(status_code=422, detail="Unsupported action value")
+    agent_id = value.split(":", 1)[1]
+
+    agent = await database.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    if agent.status != _AS.PENDING_APPROVAL:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Only a pending_approval agent can be approved "
+                   f"(current: {agent.status.value}).")
+    actor = f"slack:{interactive.get('user', {}).get('name', 'anonymous')}"
+    trail = agent.metrics.setdefault("audit", [])
+    if not isinstance(trail, list):
+        agent.metrics["audit"] = trail = []
+    trail.append({"action": "approve", "actor": actor,
+                  "at": datetime.now(UTC).isoformat(),
+                  "from_status": agent.status.value})
+    agent.metrics["approved_by"] = actor
+    agent.metrics["approved_at"] = datetime.now(UTC).isoformat()
+    agent.status = _AS.RUNNING
+    await database.save_agent(agent)
+    return {"status": "approved", "agent_id": agent.id, "actor": actor}

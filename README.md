@@ -203,7 +203,7 @@ Empirical results across 158 multi-turn interactions evaluated by `scripts/test_
 ## ✅ Verified Functionality & Roadmap
 
 ### 🟢 What Has Been Tested & Fully Verified (100% Passing)
-- [x] **AutoPilot FDE Test Suite**: 242/242 tests passed (`PYTHONPATH=. pytest tests/ -v`) —
+- [x] **AutoPilot FDE Test Suite**: 271/271 tests passed (`PYTHONPATH=. pytest tests/ -v`) —
   covering the discovery→score→deploy lifecycle, the approval boundary, webhook
   signature verification (including strict signed-only mode), the API-key gate,
   credential-free API responses, guarded agent state transitions
@@ -288,7 +288,7 @@ npm run dev
 
 ### 3. Run Test Suites
 ```bash
-# AutoPilot FDE Test Suite (242 assertions, =100% backend coverage gate)
+# AutoPilot FDE Test Suite (271 assertions, =100% backend coverage gate)
 PYTHONPATH=. pytest tests/ -v --cov=backend --cov-report=term-missing
 
 # Lint (backend + scripts)
@@ -451,8 +451,12 @@ research⇄implement loop ([ROADMAP.md](ROADMAP.md) ·
   a **dead-letter queue** for failed internal actions with an identity-bound
   human-review endpoint (`/api/dlq`), and a deny-by-default webhook
   allowlist (`.autopilot/tools.policy.json`).
-- **v0.7.0 Connected** — ServiceNow/Salesforce/Jira connector profiles,
-  A2A agent cards, Slack interactive approvals, IMAP email ingestion.
+- **v0.7.0 Connected** *(shipped)* — declarative **connector profiles**
+  (ServiceNow / Salesforce / Jira) riding the governed webhook adapter,
+  **A2A-style agent cards** per deployed branch
+  (`GET /api/agents/{id}/agent-card`), Slack **interactive button approvals**
+  (`POST /api/channels/slack/interactive`, signature-verified), and IMAP
+  **email ingestion** (`POST /api/channels/email/sync`, read-only).
 
 ---
 

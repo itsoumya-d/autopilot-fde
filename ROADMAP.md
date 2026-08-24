@@ -107,7 +107,7 @@ graph LR
 | v0.4.0 | Native agents | shipped | interrupt() codegen, bundles, HF track |
 | v0.5.0 | Observable & Compliant | **shipped** | gen_ai.* spans, tamper-evident audit chain, cost attribution |
 | v0.6.0 | Governed Autonomy | **shipped** | agent identity, quotas/idempotency, DLQ, tool policy |
-| v0.7.0 | Connected | queued | connector profiles, A2A cards, Slack approvals, email |
+| v0.7.0 | Connected | **shipped** | connector profiles, A2A cards, Slack approvals, email |
 
 ## Verification contract (every iteration)
 

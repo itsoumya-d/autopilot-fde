@@ -224,6 +224,49 @@ async def draft_response(agent_id: str, request: DraftRequest, http: Request) ->
     }
 
 
+@router.get("/{agent_id}/agent-card")
+async def agent_card(agent_id: str) -> dict:
+    """A2A-style agent card: what this branch does, its steps, safety mode.
+
+    Follows the Agent2Agent agent-card shape closely enough that third-party
+    agents can discover the branch's skills without custom integration.
+    """
+    from ..security import AGENT_TOKEN_HEADER
+
+    agent = await database.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    process = await database.get_process(agent.process_id)
+    score = await database.get_score(agent.process_id)
+    steps = [a.name for a in process.activities] if process else []
+    return {
+        "name": agent.name,
+        "description": (
+            f"AutoPilot FDE branch for '{process.name if process else agent.process_id}' "
+            f"({agent.config.mode.value} mode; human approval required)."
+        ),
+        "provider": {"organization": "AutoPilot FDE", "url":
+                     "https://github.com/itsoumya-d/autopilot-fde"},
+        "version": "1.0",
+        "skills": [
+            {"id": f"step-{i}", "name": name,
+             "description": f"Discovered workflow step '{name}'"}
+            for i, name in enumerate(steps)
+        ],
+        "capabilities": {
+            "streaming": False,
+            "pushNotifications": False,
+            "humanApproval": True,
+            "blockedSteps": score.blocked_steps if score else [],
+        },
+        "securitySchemes": {
+            "agentToken": {"type": "apiKey", "in": "header", "name": AGENT_TOKEN_HEADER},
+            "dashboardKey": {"type": "apiKey", "in": "header", "name": "X-API-Key"},
+        },
+        "defaultMode": agent.config.mode.value,
+    }
+
+
 @router.get("/{agent_id}/audit-chain")
 async def agent_audit_chain(agent_id: str) -> dict:
     """Tamper-evident export of the agent's audit trail (hash-chained)."""

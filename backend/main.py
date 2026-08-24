@@ -32,7 +32,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(
     title="AutoPilot FDE",
     description="Evidence-backed workflow discovery and human-approved draft automation.",
-    version="0.6.0",
+    version="0.7.0",
     lifespan=lifespan,
 )
 app.add_middleware(

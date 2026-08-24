@@ -88,6 +88,36 @@ def verify_whatsapp_signature(request: Request, raw_body: bytes) -> None:
         )
 
 
+def verify_slack_signature(request: Request, raw_body: bytes) -> None:
+    """Verify Slack's v0 signature (X-Slack-Signature) when configured.
+
+    Enforced only when SLACK_SIGNING_SECRET is set; without it interactive
+    payloads are accepted with a warning (local demo). Shared deployments must
+    configure the secret — the route refuses unsigned traffic otherwise.
+    """
+    secret = os.getenv("SLACK_SIGNING_SECRET")
+    if not secret:
+        logger.warning(
+            "SLACK_SIGNING_SECRET is not set; accepting unverified Slack "
+            "interactive payload. Configure it for anything internet-reachable."
+        )
+        return
+    timestamp = request.headers.get("X-Slack-Request-Timestamp", "")
+    signature = request.headers.get("X-Slack-Signature", "")
+    if not timestamp or not signature.startswith("v0="):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Slack signature missing or malformed.",
+        )
+    basename = f"v0:{timestamp}:".encode() + raw_body
+    expected = "v0=" + hmac.new(secret.encode(), basename, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, signature):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Slack signature verification failed.",
+        )
+
+
 def webhook_verification_required() -> bool:
     """True when unsigned webhook payloads must be refused outright."""
     return os.getenv("AUTOPILOT_REQUIRE_SIGNED_WEBHOOKS", "").strip() == "1"

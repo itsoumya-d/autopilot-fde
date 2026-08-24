@@ -108,6 +108,21 @@ async def upsert_channel(channel: Channel) -> Channel:
     return channel
 
 
+async def upsert_message_channel(channel_id: str) -> Channel:
+    """Ensure a channel row exists for a derived id (e.g. email:<user>)."""
+    existing = await get_channel(channel_id)
+    if existing:
+        return existing
+    kind = channel_id.split(":", 1)[0]
+    try:
+        channel_type = ChannelType(kind)
+    except ValueError:
+        channel_type = ChannelType.EMAIL
+    return await upsert_channel(Channel(
+        id=channel_id, type=channel_type, name=channel_id,
+        status=ChannelStatus.ACTIVE))
+
+
 async def get_channels() -> list[Channel]:
     db = await _db()
     cursor = await db.execute(

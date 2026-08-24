@@ -3,7 +3,7 @@
   "name": "io.github.itsoumya-d/autopilot-fde",
   "display_name": "AutoPilot FDE",
   "description": "Forward-deployed engineering copilot: mines business workflows from Slack/WhatsApp streams, scores automation potential (APS) via graph entropy, Monte-Carlo-simulates ROI, and deploys human-gated LangGraph agents. Read-only discovery tools are open; mutating deploy/approve tools are operator-gated.",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "homepage": "https://github.com/itsoumya-d/autopilot-fde",
   "repository": {
     "url": "https://github.com/itsoumya-d/autopilot-fde"
