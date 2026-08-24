@@ -22,6 +22,10 @@ gantt
   Hash-chained tamper-evident audit export  :a2, after a1, 1d
   Token-cost attribution rollups            :a3, after a2, 1d
 
+  section v0.8.0 Operable Identity and Telemetry
+  OTLP exporter env wiring                   :done, d1, 2026-08-24, 1d
+  Short-lived agent identity leases          :done, d2, after d1, 1d
+
   section v0.6.0 Governed Autonomy
   Per-agent workload identity tokens        :b1, after a3, 1d
   Per-agent quotas + idempotency keys       :b2, after b1, 1d
@@ -108,6 +112,7 @@ graph LR
 | v0.5.0 | Observable & Compliant | **shipped** | gen_ai.* spans, tamper-evident audit chain, cost attribution |
 | v0.6.0 | Governed Autonomy | **shipped** | agent identity, quotas/idempotency, DLQ, tool policy |
 | v0.7.0 | Connected | **shipped** | connector profiles, A2A cards, Slack approvals, email |
+| v0.8.0 | Operable Identity & Telemetry | **shipped** | OTLP env wiring, expiring identity leases |
 
 ## Verification contract (every iteration)
 

@@ -203,7 +203,7 @@ Empirical results across 158 multi-turn interactions evaluated by `scripts/test_
 ## ✅ Verified Functionality & Roadmap
 
 ### 🟢 What Has Been Tested & Fully Verified (100% Passing)
-- [x] **AutoPilot FDE Test Suite**: 271/271 tests passed (`PYTHONPATH=. pytest tests/ -v`) —
+- [x] **AutoPilot FDE Test Suite**: 294/294 tests passed (`PYTHONPATH=. pytest tests/ -v`) —
   covering the discovery→score→deploy lifecycle, the approval boundary, webhook
   signature verification (including strict signed-only mode), the API-key gate,
   credential-free API responses, guarded agent state transitions
@@ -288,7 +288,7 @@ npm run dev
 
 ### 3. Run Test Suites
 ```bash
-# AutoPilot FDE Test Suite (271 assertions, =100% backend coverage gate)
+# AutoPilot FDE Test Suite (294 assertions, =100% backend coverage gate)
 PYTHONPATH=. pytest tests/ -v --cov=backend --cov-report=term-missing
 
 # Lint (backend + scripts)
@@ -388,6 +388,8 @@ demo** (the server seeds its own workspace and auto-discovers on first boot).
 | `AUTOPILOT_AGENT_SECRET` | falls back to API key | Signing secret for per-agent identity tokens |
 | `AUTOPILOT_GUARD_DB` | beside workspace DB | Idempotency + dead-letter store location |
 | `AUTOPILOT_TOOLS_POLICY` | `.autopilot/tools.policy.json` | Webhook host allowlist; absent file = unrestricted |
+| `AUTOPILOT_OTEL_OTLP_ENDPOINT` | unset (disabled) | OTLP/HTTP base endpoint; spans go to `<endpoint>/v1/traces` (needs observability extra) |
+| `AUTOPILOT_SERVICE_NAME` | `autopilot-fde` | `service.name` resource attribute on exported spans |
 
 ---
 
@@ -451,6 +453,12 @@ research⇄implement loop ([ROADMAP.md](ROADMAP.md) ·
   a **dead-letter queue** for failed internal actions with an identity-bound
   human-review endpoint (`/api/dlq`), and a deny-by-default webhook
   allowlist (`.autopilot/tools.policy.json`).
+- **v0.8.0 Operable Identity & Telemetry** *(shipped)* — env-driven **OTLP
+  export wiring** (`AUTOPILOT_OTEL_OTLP_ENDPOINT`; standard
+  `OTEL_EXPORTER_OTLP_ENDPOINT` honored, graceful no-op without the extra)
+  and short-lived **agent identity leases** (`POST /api/agents/{id}/lease`,
+  15-min TTL by default) that `verify_agent_token` accepts alongside static
+  tokens — SPIFFE-style rotation posture without a JWT dependency.
 - **v0.7.0 Connected** *(shipped)* — declarative **connector profiles**
   (ServiceNow / Salesforce / Jira) riding the governed webhook adapter,
   **A2A-style agent cards** per deployed branch

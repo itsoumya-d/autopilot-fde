@@ -214,9 +214,106 @@ def issue_agent_token(agent_id: str, secret: str | None = None) -> str | None:
 
 
 def verify_agent_token(agent_id: str, provided: str | None,
-                       secret: str | None = None) -> bool:
-    """Constant-time verification; False when anything is missing."""
+                       secret: str | None = None,
+                       now: float | None = None) -> bool:
+    """Constant-time verification; False when anything is missing.
+
+    Accepts two token shapes transparently:
+    - static hex token (long-lived; pre-v0.8 deployments), or
+    - a lease ``v1.<b64url-payload>.<sig>`` carrying an expiry, per the
+      short-lived workload-credential posture (SPIFFE-style rotation,
+      RFC 8693 scoping) without pulling in a JWT dependency.
+    """
+    if not provided:
+        return False
+    if provided.startswith("v1."):
+        payload = decode_agent_lease(provided, secret=secret)
+        if not payload or payload.get("aid") != agent_id:
+            return False
+        remaining = lease_seconds_remaining(payload, now=now)
+        return remaining is not None and remaining > 0
     expected = issue_agent_token(agent_id, secret)
-    if not expected or not provided:
+    if not expected:
         return False
     return hmac.compare_digest(expected, provided)
+
+
+# ── Agent identity leases (short-lived capability tokens) ───────────────────
+
+LEASE_TTL_SECONDS_DEFAULT = 900  # 15 minutes, mirroring SVID rotation cadence
+
+
+def _b64url_encode(raw: bytes) -> str:
+    import base64
+
+    return base64.urlsafe_b64encode(raw).decode().rstrip("=")
+
+
+def _b64url_decode(text: str) -> bytes:
+    import base64
+
+    padding = "=" * (-len(text) % 4)
+    return base64.urlsafe_b64decode(text + padding)
+
+
+def issue_agent_lease(agent_id: str,
+                      ttl_seconds: int = LEASE_TTL_SECONDS_DEFAULT,
+                      secret: str | None = None,
+                      now: float | None = None) -> str | None:
+    """Expiring capability token for one branch; None when unconfigured."""
+    key = secret if secret is not None else _identity_secret()
+    if not key:
+        return None
+    issued_at = int(now if now is not None else time_time())
+    payload = {"aid": agent_id, "iat": issued_at,
+               "exp": issued_at + int(ttl_seconds)}
+    body = _b64url_encode(json_dumps(payload).encode())
+    signature = hmac.new(key.encode(), f"lease:{body}".encode(),
+                         hashlib.sha256).hexdigest()
+    return f"v1.{body}.{signature}"
+
+
+def json_dumps(payload: dict) -> str:
+    import json
+
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
+
+def time_time() -> float:
+    import time
+
+    return time.time()
+
+
+def decode_agent_lease(token: str,
+                       secret: str | None = None) -> dict | None:
+    """Validate signature and shape of a lease token; payload or None."""
+    key = secret if secret is not None else _identity_secret()
+    if not key:
+        return None
+    parts = token.split(".")
+    if len(parts) != 3 or parts[0] != "v1":
+        return None
+    _, body, signature = parts
+    expected = hmac.new(key.encode(), f"lease:{body}".encode(),
+                        hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, signature):
+        return None
+    try:
+        import json
+
+        payload = json.loads(_b64url_decode(body))
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(payload, dict) or "aid" not in payload or "exp" not in payload:
+        return None
+    return payload
+
+
+def lease_seconds_remaining(payload: dict,
+                            now: float | None = None) -> int | None:
+    exp = payload.get("exp")
+    if not isinstance(exp, (int, float)):
+        return None
+    current = now if now is not None else time_time()
+    return int(exp - current)

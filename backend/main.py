@@ -16,7 +16,12 @@ logger = logging.getLogger("autopilot")
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    from .observability.export import configure_from_env
+
     await database.init_db()
+    otel_status = configure_from_env()
+    if not otel_status["enabled"]:
+        logger.info("OTel OTLP export disabled: %s", otel_status.get("reason"))
     if not api_key_configured():
         logger.warning(
             "AUTOPILOT_API_KEY is not set: mutating endpoints (deploy, approve, "
@@ -32,7 +37,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(
     title="AutoPilot FDE",
     description="Evidence-backed workflow discovery and human-approved draft automation.",
-    version="0.7.0",
+    version="0.8.0",
     lifespan=lifespan,
 )
 app.add_middleware(

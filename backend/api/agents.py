@@ -267,6 +267,29 @@ async def agent_card(agent_id: str) -> dict:
     }
 
 
+@router.post("/{agent_id}/lease", dependencies=[Depends(require_api_key)])
+async def issue_lease(agent_id: str, http: Request) -> dict:
+    """Rotate a short-lived identity lease for one branch (operator action)."""
+    from ..security import (
+        LEASE_TTL_SECONDS_DEFAULT,
+        _identity_secret,
+        issue_agent_lease,
+    )
+
+    agent = await database.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    if not _identity_secret():
+        raise HTTPException(
+            status_code=503,
+            detail="No signing secret configured (set AUTOPILOT_AGENT_SECRET "
+                   "or AUTOPILOT_API_KEY); leases are disabled.")
+    ttl = LEASE_TTL_SECONDS_DEFAULT
+    lease = issue_agent_lease(agent_id, ttl_seconds=ttl)
+    return {"agent_id": agent_id, "lease": lease, "expires_in": ttl,
+            "header": "X-Autopilot-Agent-Token"}
+
+
 @router.get("/{agent_id}/audit-chain")
 async def agent_audit_chain(agent_id: str) -> dict:
     """Tamper-evident export of the agent's audit trail (hash-chained)."""

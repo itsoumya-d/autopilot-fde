@@ -3,6 +3,26 @@
 Every loop iteration starts with cited research. Entries are dated, link
 their sources, and name the implementation each finding fed.
 
+## 2026-08-24 (later) — Operable identity & telemetry (v0.8.0 inputs)
+
+**Sources**
+
+- OpenTelemetry, *OTLP Exporter Configuration* (updated 2026-07-13) —
+  https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/
+- OpenTelemetry Python, *Exporters* / `OTLPSpanExporter` reference —
+  https://opentelemetry.io/docs/languages/python/exporters/
+- Grafana, *Instrument a Python application* (post-fork provider setup) —
+  https://grafana.com/docs/opentelemetry/instrument/python/
+- Carried context: SPIFFE/SPIRE workload attestation and RFC 8693 token
+  exchange from the agentic-integration-stack survey (2026-08-24 entry).
+
+**Findings → implementation mapping**
+
+| Finding | Feeds |
+|---|---|
+| Standard OTel wiring is programmatic: `TracerProvider(Resource(service.name))` + `BatchSpanProcessor(OTLPSpanExporter(endpoint))`; OTLP/HTTP appends `/v1/traces` to the base endpoint | v0.8 `observability/export.py`: env-driven wiring (`AUTOPILOT_OTEL_OTLP_ENDPOINT`, falls back to `OTEL_EXPORTER_OTLP_ENDPOINT`) called from app lifespan; dependency-injected so tests exercise the path without the exporter installed |
+| Enterprise agent identity direction is short-lived, scoped, attested credentials (SPIFFE SVIDs rotate ~1–4h; RFC 8693 derives narrow tokens from user sessions) rather than long-lived static secrets | v0.8 **agent identity leases**: HMAC-signed, expiring capability tokens (`v1.<payload>.<sig>`, default 15-min TTL) issued per branch at `POST /api/agents/{id}/lease`; `verify_agent_token` transparently accepts lease or legacy static token, keeping DLQ review and future mutating surfaces unchanged |
+
 ## 2026-08-24 — The FDE operating model is now the enterprise AI motion
 
 **Sources**
