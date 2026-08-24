@@ -389,10 +389,14 @@ class TestToolAdapterGuards(unittest.TestCase):
 
 class TestSecurityPrimitives(unittest.TestCase):
     def test_rate_limiter_evicts_stale_window_entries(self):
+        import time as time_mod
+
         from backend.security import RateLimiter
 
         limiter = RateLimiter()
-        limiter._hits["old-client"] = [0.0]  # ancient timestamps
+        # Stale relative to THIS runner's monotonic clock (fresh CI boxes
+        # can have uptime < 60s, so an absolute 0.0 is not stale there).
+        limiter._hits["old-client"] = [time_mod.monotonic() - 3600.0]
         with self.assertRaises(Exception) as ctx:
             for _ in range(2):
                 limiter.check("old-client", limit_per_min=1)
