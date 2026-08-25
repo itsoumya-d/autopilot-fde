@@ -240,9 +240,8 @@ Empirical results across 158 multi-turn interactions evaluated by `scripts/test_
 
 ### 🟡 Upcoming Roadmap (Features Left to Check)
 - [ ] **Multi-Modal Video & Audio Stream Extraction**: Ingestion of recorded Zoom/Teams meeting transcripts via Whisper & Vision LLMs.
-- [ ] **Email (IMAP) connector**: the schema and UI already carry the `email` channel type; wire the IMAP poller.
 - [ ] **Decentralized Multi-Tenant Cloud Relay**: Encrypted enterprise agent mesh sync across AWS / GCP VPCs.
-- [ ] **Live Slack Interactive Blocks Gateway**: Socket-mode two-way interactive buttons for one-click human approval directly in Slack channels.
+- [ ] **Live Slack Socket-Mode Gateway**: Interactive button approvals already run over the signed HTTP webhook (`POST /api/channels/slack/interactive`, v0.7.0); this adds the socket-mode transport so approvals work behind restrictive firewalls without a public webhook URL.
 
 ---
 
