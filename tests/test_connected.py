@@ -282,6 +282,22 @@ class TestEmailSync(unittest.TestCase):
         self.assertIn("vendor Acme", message.content)
         self.assertEqual(message.metadata["read_only"], True)
 
+    def test_parse_email_message_survives_ml_enrichment_failure(self):
+        from backend.ingestion.email_connector import parse_email_message
+
+        raw = (b"From: Dana <dana@corp.example>\r\n"
+               b"Subject: Classifier outage\r\n"
+               b"To: ops@corp.example\r\n"
+               b"Message-ID: <mlfail@corp>\r\n\r\n"
+               b"Body must still parse when classification fails.\r\n")
+        with mock.patch(
+            "backend.ml.email_classifier.EmailClassifier.predict",
+            side_effect=RuntimeError("classifier offline"),
+        ):
+            message = parse_email_message(raw, "email:ops@corp.example")
+        self.assertIsNotNone(message)
+        self.assertNotIn("ml_intent", message.metadata)
+
     def test_sync_without_credentials_is_configuration_error(self):
         from backend.ingestion.email_connector import (
             EmailConfigurationError,

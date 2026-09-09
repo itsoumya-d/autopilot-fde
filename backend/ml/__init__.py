@@ -4,6 +4,6 @@ Provides deep learning (TensorFlow / Keras) and vectorized NLP classification fo
 incoming enterprise communication streams.
 """
 
-from .email_classifier import EmailClassifier, EmailClassificationResult
+from .email_classifier import EmailClassificationResult, EmailClassifier
 
 __all__ = ["EmailClassifier", "EmailClassificationResult"]

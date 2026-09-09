@@ -77,7 +77,12 @@ INTENT_KEYWORDS: dict[str, list[str]] = {
 
 # Regex patterns for high-priority entity extraction
 RE_TICKET_ID = re.compile(r"\b([A-Z]{2,10}-\d{1,6})\b")
-RE_CURRENCY = re.compile(r"(\$|€|£|₹|\bUSD\b|\bEUR\b|\bINR\b)\s?(\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\d+(?:\.\d{2})?)\s?(k|M|B)?", re.IGNORECASE)
+RE_CURRENCY = re.compile(
+    r"(\$|€|£|₹|\bUSD\b|\bEUR\b|\bINR\b)\s?"
+    r"(\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\d+(?:\.\d{2})?)\s?"
+    r"(k|M|B)?",
+    re.IGNORECASE,
+)
 RE_SEVERITY = re.compile(r"\b(P0|P1|P2|P3|SEV-?0|SEV-?1|SEV-?2|CRITICAL|HIGH|URGENT)\b", re.IGNORECASE)
 RE_EMAIL = re.compile(r"\b[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+\b")
 

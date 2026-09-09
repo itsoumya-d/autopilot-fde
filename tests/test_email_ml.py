@@ -1,7 +1,11 @@
 """Unit tests for the Email Machine Learning intent classifier and entity extractor."""
 
+import sys
+import types
+
 import pytest
-from backend.ml.email_classifier import EmailClassifier, INTENT_CLASSES
+
+from backend.ml.email_classifier import INTENT_CLASSES, EmailClassifier
 
 
 @pytest.fixture
@@ -92,3 +96,109 @@ def test_result_to_dict_structure(classifier: EmailClassifier):
     assert "entities" in d
     assert "is_actionable" in d
     assert d["primary_intent"] == "billing_inquiry"
+
+
+class _FakeTensor:
+    """Minimal stand-in for a TensorFlow tensor exposing ``numpy()``."""
+
+    def __init__(self, value: object) -> None:
+        self._value = value
+
+    def numpy(self) -> object:
+        return self._value
+
+
+class _FakeLayer:
+    """Callable layer stand-in; records constructor args and adapt() payload."""
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        self.args = args
+        self.kwargs = kwargs
+        self.adapted_with: object = None
+
+    def __call__(self, value: object) -> _FakeTensor:
+        return _FakeTensor(value)
+
+    def adapt(self, dataset: object) -> None:
+        self.adapted_with = dataset
+
+
+class _FakeModel:
+    """Stand-in Keras model returning a uniform softmax distribution."""
+
+    def __init__(self, inputs: object = None, outputs: object = None, name: str = "model") -> None:
+        self.inputs = inputs
+        self.outputs = outputs
+        self.name = name
+        self.compiled = False
+        self.compile_kwargs: dict[str, object] = {}
+
+    def compile(self, **kwargs: object) -> None:
+        self.compiled = True
+        self.compile_kwargs = kwargs
+
+    def __call__(self, tensor: object) -> list[_FakeTensor]:
+        probability = 1.0 / len(INTENT_CLASSES)
+        return [_FakeTensor([probability] * len(INTENT_CLASSES))]
+
+
+def _fake_tensorflow() -> types.SimpleNamespace:
+    """Builds a fake ``tensorflow`` module covering the Keras calls we make."""
+    return types.SimpleNamespace(
+        __version__="2.99.0-fake",
+        string="string",
+        constant=lambda value: _FakeTensor(value),
+        keras=types.SimpleNamespace(
+            Input=lambda **kwargs: _FakeTensor("input"),
+            layers=types.SimpleNamespace(
+                TextVectorization=_FakeLayer,
+                Embedding=_FakeLayer,
+                Bidirectional=lambda layer: layer,
+                LSTM=lambda *args, **kwargs: _FakeLayer(),
+                Dense=_FakeLayer,
+                Dropout=_FakeLayer,
+            ),
+            Model=_FakeModel,
+        ),
+        data=types.SimpleNamespace(
+            Dataset=types.SimpleNamespace(from_tensor_slices=lambda corpus: corpus),
+        ),
+    )
+
+
+def test_tensorflow_backend_builds_keras_model(monkeypatch: pytest.MonkeyPatch):
+    """EmailClassifier(use_tf=True) loads the fake TF backend and compiles the model."""
+    monkeypatch.setitem(sys.modules, "tensorflow", _fake_tensorflow())
+
+    classifier = EmailClassifier(use_tf=True)
+
+    assert classifier.tf_available is True
+    assert classifier.tf_model is not None
+    assert classifier.tf_model.compiled is True
+
+
+def test_tensorflow_inference_uses_keras_backend(monkeypatch: pytest.MonkeyPatch):
+    """predict() reports the TF engine when the Keras model returns probabilities."""
+    monkeypatch.setitem(sys.modules, "tensorflow", _fake_tensorflow())
+    classifier = EmailClassifier(use_tf=True)
+
+    result = classifier.predict("Production outage", "5xx spike, rollback the deploy now")
+
+    assert result.backend_engine == "tensorflow_keras_bilstm"
+
+
+def test_tensorflow_inference_failure_falls_back(monkeypatch: pytest.MonkeyPatch):
+    """A raising TF model degrades to the calibrated vectorized engine."""
+    monkeypatch.setitem(sys.modules, "tensorflow", _fake_tensorflow())
+    classifier = EmailClassifier(use_tf=True)
+
+    class _BrokenModel:
+        def __call__(self, tensor: object) -> None:
+            raise RuntimeError("inference exploded")
+
+    classifier.tf_model = _BrokenModel()
+
+    result = classifier.predict("Invoice #9021 payment failed", "Stripe charge declined for $4,500.00.")
+
+    assert result.backend_engine == "calibrated_vectorized_nlu"
+    assert result.primary_intent == "billing_inquiry"
