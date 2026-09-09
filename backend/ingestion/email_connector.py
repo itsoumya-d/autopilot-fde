@@ -93,6 +93,25 @@ def parse_email_message(raw_bytes: bytes, fallback_channel: str,
     if timestamp.tzinfo is None:
         timestamp = timestamp.replace(tzinfo=UTC)
 
+    metadata: dict[str, Any] = {
+        "email_subject": subject,
+        "read_only": True,
+    }
+    try:
+        from ..ml.email_classifier import EmailClassifier
+        classifier = EmailClassifier()
+        body_text = body_parts[0] if body_parts else ""
+        ml_res = classifier.predict(subject, body_text)
+        metadata.update({
+            "ml_intent": ml_res.primary_intent,
+            "ml_confidence": ml_res.confidence,
+            "ml_entities": ml_res.entities,
+            "ml_actionable": ml_res.is_actionable,
+            "ml_recommended_activity": ml_res.recommended_activity,
+        })
+    except Exception as exc:
+        logger.debug("Email ML enrichment skipped: %s", exc)
+
     return Message(
         id=stable_id,
         channel_id=fallback_channel,
@@ -100,7 +119,7 @@ def parse_email_message(raw_bytes: bytes, fallback_channel: str,
         content=content,
         timestamp=timestamp,
         thread_id=message_id,
-        metadata={"email_subject": subject, "read_only": True},
+        metadata=metadata,
     )
 
 
