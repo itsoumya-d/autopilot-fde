@@ -34,10 +34,13 @@ node_modules/
 
 # Sensitive files
 *.db
+*.db-*
 *.pdf
 *.sqlite
+*.sqlite-*
 *.resume*
 tsconfig.tsbuildinfo
+runs/
 
 # Coverage artifacts
 .coverage

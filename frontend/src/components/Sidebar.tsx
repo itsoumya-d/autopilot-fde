@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, MessageSquare, Activity, BarChart2, Rocket, TrendingUp, Sparkles, Share2, Boxes, Menu } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Activity, BarChart2, Rocket, TrendingUp, Sparkles, Share2, Boxes, Menu, Shield, Cpu } from 'lucide-react';
 
 const Sidebar = () => {
   const pathname = usePathname();
@@ -11,6 +11,8 @@ const Sidebar = () => {
 
   const links = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/archetypes', label: '5 Archetypes', icon: Shield },
+    { href: '/distillation', label: 'Distill Studio', icon: Cpu },
     { href: '/social-deck', label: 'Social Studio', icon: Share2 },
     { href: '/showcase', label: 'Motion Showcase', icon: Sparkles },
     { href: '/channels', label: 'Channels', icon: MessageSquare },

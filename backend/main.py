@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import database
-from .api import agents, channels, dashboard, dlq, processes, scores
+from .api import agents, archetypes, channels, dashboard, distillation, dlq, processes, scores
 from .mcp_http import router as mcp_http_router
 from .security import api_key_configured, cors_origins_from_env
 from .services import ensure_demo_workspace, run_discovery
@@ -55,6 +55,8 @@ app.include_router(processes.router, prefix="/api/processes", tags=["Processes"]
 app.include_router(scores.router, prefix="/api/scores", tags=["Scoring"])
 app.include_router(agents.router, prefix="/api/agents", tags=["Agents"])
 app.include_router(dlq.router, prefix="/api/dlq", tags=["DeadLetterQueue"])
+app.include_router(distillation.router, prefix="/api/distillation", tags=["Distillation"])
+app.include_router(archetypes.router, prefix="/api/archetypes", tags=["Archetypes"])
 app.include_router(mcp_http_router)
 
 

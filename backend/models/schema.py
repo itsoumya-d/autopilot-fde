@@ -243,3 +243,171 @@ class DashboardSummary(BaseModel):
     # spend across scored processes, and runtime tokens burned by agents.
     estimated_monthly_token_cost_dollars: float = 0.0
     agent_tokens_consumed: int = 0
+
+
+# ── Distillation Studio Models ─────────────────────────────────────────────
+
+class TeacherModel(str, Enum):
+    GPT_4O = "gpt-4o"
+    CLAUDE_3_5_SONNET = "claude-3-5-sonnet"
+    DEEPSEEK_R1 = "deepseek-r1"
+    LLAMA_3_1_405B = "meta-llama/Meta-Llama-3.1-405B-Instruct"
+
+
+class StudentModel(str, Enum):
+    QWEN_2_5_7B = "Qwen/Qwen2.5-7B-Instruct"
+    LLAMA_3_1_8B = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+    MISTRAL_7B = "mistralai/Mistral-7B-Instruct-v0.3"
+    GEMMA_2_9B = "google/gemma-2-9b-it"
+
+
+class DistillationStatus(str, Enum):
+    PENDING = "pending"
+    EXTRACTING = "extracting"
+    SCRUBBING_PII = "scrubbing_pii"
+    GENERATING_RECIPE = "generating_recipe"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class DistillationJob(BaseModel):
+    id: str
+    teacher_model: TeacherModel
+    student_model: StudentModel
+    status: DistillationStatus = DistillationStatus.PENDING
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    sample_count: int = 0
+    pii_scrubbed_count: int = 0
+    attest_internal_use_only: bool = True
+    commercial_foundation_competition_waiver: bool = True
+    training_format: str = "alpaca"
+    output_dir: str = "runs/distillation"
+    lora_rank: int = 16
+    epochs: int = 3
+    batch_size: int = 4
+    learning_rate: float = 2e-4
+    quantization: str = "4bit"
+    target_hardware: str = "vllm_or_ollama"
+    generated_recipe_files: list[str] = Field(default_factory=list)
+
+
+# ── The 5 FDE Archetype Models ─────────────────────────────────────────────
+
+class ArchetypeType(str, Enum):
+    PROJECT1_KNOWLEDGE_RAG = "project1_knowledge_rag"
+    PROJECT2_INTAKE_RESOLUTION = "project2_intake_resolution"
+    PROJECT3_DOCUMENT_INTEL = "project3_document_intel"
+    PROJECT4_DATA_ONBOARDING = "project4_data_onboarding"
+    PROJECT5_OPERATIONS_CMD = "project5_operations_cmd"
+
+
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    ENGINEERING = "engineering"
+    HR = "hr"
+    FINANCE = "finance"
+    SUPPORT = "support"
+    GUEST = "guest"
+
+
+class KnowledgeDocument(BaseModel):
+    id: str
+    title: str
+    content: str
+    allowed_roles: list[UserRole]
+    department: str
+    confidentiality: str = "internal"
+    source: str = "wiki"
+
+
+class KnowledgeQueryResult(BaseModel):
+    query: str
+    user_role: UserRole
+    allowed: bool
+    answer: str
+    citations: list[dict[str, Any]] = Field(default_factory=list)
+    grounding_score: float = 1.0
+    blocked_count: int = 0
+
+
+class IntakeTicket(BaseModel):
+    id: str
+    customer: str
+    channel: ChannelType
+    content: str
+    priority: str = "medium"
+    status: str = "queued"
+    state_machine_step: str = "triage"
+    requires_approval: bool = False
+    approval_token: str | None = None
+    suggested_action: str = ""
+    assigned_tier: str = "tier1"
+
+
+class LineItem(BaseModel):
+    description: str
+    quantity: float
+    unit_price: float
+    total: float
+
+
+class ExtractedInvoice(BaseModel):
+    invoice_id: str
+    vendor: str
+    date: str
+    line_items: list[LineItem] = Field(default_factory=list)
+    subtotal: float
+    tax: float
+    total_amount: float
+
+
+class DocumentValidationReport(BaseModel):
+    invoice_id: str
+    is_valid: bool
+    arithmetic_valid: bool
+    discrepancy_details: list[str] = Field(default_factory=list)
+    math_delta: float = 0.0
+    action_recommended: str
+
+
+class OnboardingRow(BaseModel):
+    row_number: int
+    raw_data: dict[str, Any]
+    mapped_data: dict[str, Any] = Field(default_factory=dict)
+    is_valid: bool = True
+    quarantine_reason: str | None = None
+
+
+class OnboardingBatchReport(BaseModel):
+    batch_id: str
+    source_filename: str
+    total_rows: int
+    accepted_rows: int
+    quarantined_rows: int
+    schema_match_pct: float
+    detected_headers: list[str]
+    mapped_headers: dict[str, str]
+
+
+class TelemetryAlert(BaseModel):
+    id: str
+    service: str
+    metric: str
+    severity: str
+    value: float
+    threshold: float
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+
+class CorrelatedIncident(BaseModel):
+    incident_id: str
+    title: str
+    severity: str
+    correlated_alerts: list[str]
+    probable_root_cause: str
+    canary_action: str
+    remediation_action: str
+    can_rollback: bool = True
+    rollback_token: str
+    state: str = "investigating"
+
