@@ -8,8 +8,6 @@ rigorously verify arithmetic, tax reconciliation, and line-item integrity.
 
 from __future__ import annotations
 
-from typing import Any
-
 from ..models.schema import DocumentValidationReport, ExtractedInvoice, LineItem
 
 

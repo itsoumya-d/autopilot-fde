@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
-from ..models.schema import DistillationJob, StudentModel
+from ..models.schema import DistillationJob
 
 
 class RecipeExporter:
@@ -84,7 +83,6 @@ print("Fine-tuning complete. Model saved to {job.output_dir}/gguf")
     @staticmethod
     def generate_ollama_modelfile(job: DistillationJob) -> str:
         """Generates an Ollama Modelfile for one-command local deployment."""
-        student_tag = job.student_model.value.split("/")[-1].lower()
         return f'''# AutoPilot FDE Ollama Deployment Manifest
 # Distilled from Teacher: {job.teacher_model.value}
 FROM {job.output_dir}/gguf/unsloth.Q4_K_M.gguf

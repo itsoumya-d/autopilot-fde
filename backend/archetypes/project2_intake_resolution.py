@@ -9,7 +9,6 @@ gate until approved with a cryptographic token.
 from __future__ import annotations
 
 import uuid
-from typing import Any
 
 from ..models.schema import ChannelType, IntakeTicket
 
@@ -46,7 +45,7 @@ class IntakeOrchestrator:
         approval_token = f"APP-{uuid.uuid4().hex[:8]}" if requires_approval else None
 
         suggested_action = (
-            f"Escalate to billing manager for refund review."
+            "Escalate to billing manager for refund review."
             if requires_approval
             else f"Send automated self-service resolution guide for {channel.value}."
         )
