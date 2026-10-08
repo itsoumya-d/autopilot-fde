@@ -23,7 +23,6 @@ class WorkflowSynthesizer:
     def classify_archetype(process: Process) -> ArchetypeType:
         """Determines the best-fit enterprise archetype from process metadata and activity semantics."""
         name_and_steps = (process.name + " " + " ".join(a.name for a in process.activities)).lower()
-        category = (process.category or "").lower()
 
         # Project 5: Operations Command Center
         if any(w in name_and_steps for w in ["incident", "alert", "outage", "monitor", "telemetry", "devops", "sre", "crash"]):

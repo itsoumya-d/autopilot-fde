@@ -144,9 +144,14 @@ class TestServeLoop(McpWorkspaceTestCase):
     def test_main_invokes_asyncio_run_with_serve(self):
         from unittest import mock as mock_mod
 
-        with mock_mod.patch("backend.mcp_server.asyncio.run") as run_mock:
+        with mock_mod.patch("backend.mcp_server.serve", new_callable=mock_mod.Mock) as serve_mock, \
+             mock_mod.patch("backend.mcp_server.asyncio.run") as run_mock:
+            # Test entrypoint wiring without creating a coroutine that the mocked
+            # runner never awaits.
+            serve_mock.return_value = mock_mod.sentinel.serve_awaitable
             mcp_server.main()
-        run_mock.assert_called_once()
+        serve_mock.assert_called_once_with()
+        run_mock.assert_called_once_with(mock_mod.sentinel.serve_awaitable)
 
     def test_configure_db_path_relocates_workspace(self):
         override = pathlib.Path(self._tmp.name) / "relocated.db"

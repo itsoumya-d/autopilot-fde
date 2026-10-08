@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from ..archetypes.project1_knowledge_rag import PermissionAwareRAG
 from ..archetypes.project2_intake_resolution import IntakeOrchestrator
@@ -14,13 +14,10 @@ from ..archetypes.project4_data_onboarding import DataOnboardingPipeline
 from ..archetypes.project5_operations_cmd import OperationsCommandCenter
 from ..models.schema import (
     ChannelType,
-    CorrelatedIncident,
     DocumentValidationReport,
     ExtractedInvoice,
     IntakeTicket,
     KnowledgeQueryResult,
-    OnboardingBatchReport,
-    OnboardingRow,
     TelemetryAlert,
     UserRole,
 )
@@ -68,10 +65,10 @@ async def ingest_ticket(req: IngestTicketRequest) -> IntakeTicket:
 async def approve_ticket(req: ApproveTicketRequest) -> IntakeTicket:
     try:
         return _intake_orchestrator.approve_ticket(req.ticket_id, req.approval_token, req.operator)
-    except KeyError:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail="Ticket not found") from e
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("/project2/tickets", response_model=list[IntakeTicket], summary="List all active intake tickets")
@@ -170,7 +167,7 @@ class RollbackRequest(BaseModel):
 async def rollback_action(req: RollbackRequest) -> dict[str, Any]:
     try:
         return _cmd_center.rollback_action(req.incident_id, req.rollback_token, req.operator)
-    except KeyError:
-        raise HTTPException(status_code=404, detail="Incident not found")
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail="Incident not found") from e
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e

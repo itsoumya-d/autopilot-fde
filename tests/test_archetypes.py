@@ -22,7 +22,6 @@ from backend.models.schema import (
     ArchetypeType,
     ChannelType,
     ExtractedInvoice,
-    KnowledgeDocument,
     LineItem,
     Process,
     TelemetryAlert,
@@ -130,10 +129,12 @@ class TestArchetypesSuite(unittest.TestCase):
         # Approve with wrong token returns 400
         appr_fail = self.client.post("/api/archetypes/project2/approve", json={"ticket_id": t_id, "approval_token": "BAD-TOKEN"})
         assert appr_fail.status_code == 400
+        assert appr_fail.json() == {"detail": "Invalid approval token"}
 
         # Approve unknown ticket returns 404
         appr_404 = self.client.post("/api/archetypes/project2/approve", json={"ticket_id": "TICK-UNKNOWN", "approval_token": "T"})
         assert appr_404.status_code == 404
+        assert appr_404.json() == {"detail": "Ticket not found"}
 
     # ── Project 3 Tests ────────────────────────────────────────────────────
 
@@ -268,9 +269,11 @@ class TestArchetypesSuite(unittest.TestCase):
         # Rollback API error handling
         rb_fail = self.client.post("/api/archetypes/project5/rollback", json={"incident_id": inc_id, "rollback_token": "BAD-TOKEN"})
         assert rb_fail.status_code == 400
+        assert rb_fail.json() == {"detail": "Invalid rollback token"}
 
         rb_404 = self.client.post("/api/archetypes/project5/rollback", json={"incident_id": "INC-UNKNOWN", "rollback_token": "T"})
         assert rb_404.status_code == 404
+        assert rb_404.json() == {"detail": "Incident not found"}
 
     # ── Workflow Synthesizer Tests ─────────────────────────────────────────
 
@@ -301,3 +304,39 @@ class TestArchetypesSuite(unittest.TestCase):
             assert "safety_guardrails" in spec
             assert "recommended_stack" in spec
             assert "latency_sla_ms" in spec
+
+
+@pytest.mark.parametrize(
+    ("handler_name", "engine_name", "method_name", "payload", "cause", "status", "detail"),
+    [
+        ("approve_ticket", "_intake_orchestrator", "approve_ticket",
+         archetypes_api.ApproveTicketRequest(ticket_id="missing", approval_token="token"),
+         KeyError("Ticket missing not found"), 404, "Ticket not found"),
+        ("approve_ticket", "_intake_orchestrator", "approve_ticket",
+         archetypes_api.ApproveTicketRequest(ticket_id="existing", approval_token="invalid"),
+         ValueError("Invalid approval token"), 400, "Invalid approval token"),
+        ("rollback_action", "_cmd_center", "rollback_action",
+         archetypes_api.RollbackRequest(incident_id="missing", rollback_token="token"),
+         KeyError("Incident missing not found"), 404, "Incident not found"),
+        ("rollback_action", "_cmd_center", "rollback_action",
+         archetypes_api.RollbackRequest(incident_id="existing", rollback_token="invalid"),
+         ValueError("Invalid rollback token"), 400, "Invalid rollback token"),
+    ],
+    ids=["missing-ticket", "invalid-approval", "missing-incident", "invalid-rollback"],
+)
+def test_archetype_http_errors_preserve_domain_cause(
+    monkeypatch, handler_name, engine_name, method_name, payload, cause, status, detail,
+):
+    """HTTP error contracts stay stable while logs retain the originating error."""
+    from fastapi import HTTPException
+
+    def fail(*args):
+        raise cause
+
+    monkeypatch.setattr(getattr(archetypes_api, engine_name), method_name, fail)
+    with pytest.raises(HTTPException) as raised:
+        asyncio.run(getattr(archetypes_api, handler_name)(payload))
+
+    assert raised.value.status_code == status
+    assert raised.value.detail == detail
+    assert raised.value.__cause__ is cause

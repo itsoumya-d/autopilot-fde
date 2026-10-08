@@ -9,7 +9,6 @@ hybrid BM25 + dense ranking with Reciprocal Rank Fusion, and grounding checks.
 from __future__ import annotations
 
 import re
-from typing import Any
 
 from ..models.schema import KnowledgeDocument, KnowledgeQueryResult, UserRole
 

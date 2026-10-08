@@ -11,8 +11,6 @@ from ..models.schema import (
     DistillationStatus,
     Message,
     Process,
-    StudentModel,
-    TeacherModel,
 )
 from .pii_scrubber import PIIScrubber
 from .trainer import RecipeExporter

@@ -6,7 +6,7 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Next.js 15.5](https://img.shields.io/badge/frontend-Next.js%2015.5-black.svg)](https://nextjs.org/)
 [![FastAPI](https://img.shields.io/badge/backend-FastAPI-009688.svg)](https://fastapi.tiangolo.com/)
-[![Tests Passing](https://img.shields.io/badge/backend%20tests-339%20passed%20(100%25%20cov)-brightgreen.svg)](#-verification--system-audit)
+[![CI](https://github.com/itsoumya-d/autopilot-fde/actions/workflows/ci.yml/badge.svg)](https://github.com/itsoumya-d/autopilot-fde/actions/workflows/ci.yml)
 [![HostShift Parity](https://img.shields.io/badge/HostShift-222%20assertions%20green-success.svg)](#-applied-counterpart-hostshift-cross-platform-ui)
 [![License: FSL-1.1-Apache-2.0](https://img.shields.io/badge/License-FSL--1.1--Apache--2.0-red.svg)](./LICENSE)
 [![Author](https://img.shields.io/badge/Author-Soumya%20Deb%20Nath-cyan.svg)](mailto:admin@otaitech.com)
@@ -298,10 +298,11 @@ npm run dev
 
 ## 🧪 Verification & System Audit
 
-All components are strictly gated in CI/CD:
+The [CI workflow](.github/workflows/ci.yml) runs backend lint and the test suite on Python 3.12, 3.13, and 3.14, plus frontend lint, unit tests, type checking, and a production build on Node.js 22. The backend coverage gate remains 100%. Check the [latest workflow run](https://github.com/itsoumya-d/autopilot-fde/actions/workflows/ci.yml) for commit-specific results.
 
 ```bash
-# 1. AutoPilot FDE 100% Coverage Suite (339 tests)
+# 1. Backend lint and 100% coverage suite
+ruff check backend/ tests/ scripts/
 PYTHONPATH=. pytest tests/ -v --cov=backend --cov-report=term-missing --cov-fail-under=100
 
 # 2. Frontend Quality Gates (TypeScript + ESLint + Build + Tests)
@@ -314,7 +315,7 @@ bash ../scripts/run_tests.sh
 
 | Verification Suite | Metrics | Status |
 | :--- | :--- | :---: |
-| **Backend Test Suite** | 339 passed in 3.5s | **100.00% Coverage (3,078 stmts)** |
+| **Backend Test Suite** | Python 3.12 / 3.13 / 3.14 matrix | 100% coverage required; see linked CI run |
 | **Frontend Static Build** | 14/14 static pages generated | **Zero Lint/Type Errors** |
 | **HostShift Conformance** | 222/222 assertions passed | **5/5 Hosts Green** |
 | **Model Distillation** | GDPR PII Masking, Unsloth, Ollama, vLLM | **Verified** |
