@@ -3,12 +3,16 @@ import React from 'react';
 interface DeploySliderProps {
   value: number;
   onChange: (value: number) => void;
+  disabled?: boolean;
+  label?: string;
 }
 
-const DeploySlider: React.FC<DeploySliderProps> = ({ value, onChange }) => {
+const DeploySlider: React.FC<DeploySliderProps> = ({ value, onChange, disabled = false, label = 'Pilot traffic percentage' }) => {
   return (
     <div className="w-full py-4">
       <input 
+        aria-label={label}
+        disabled={disabled}
         type="range" 
         min="0" 
         max="50" 
