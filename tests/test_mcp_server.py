@@ -340,6 +340,17 @@ class TestMutationsWithConsent(McpWorkspaceTestCase):
         self.assertTrue(response["result"]["isError"])
         self.assertIn("not eligible", response["result"]["content"][0]["text"])
 
+    def test_deploy_topology_failure_returns_error_without_saving(self):
+        from unittest import mock as mock_mod
+        from backend.deployment.agent_factory import AgentFactory, WorkflowValidationError
+        with mock_mod.patch.object(AgentFactory, "generate_langgraph_code", side_effect=WorkflowValidationError("Unsupported topology")):
+            response = self.rpc("tools/call", {"name": "deploy_agent", "arguments": {
+                "process_id": self.first_process_id(), "name": "Invalid topology",
+            }})
+        self.assertTrue(response["result"]["isError"])
+        self.assertIn("topology is not executable", response["result"]["content"][0]["text"])
+        self.assertEqual(asyncio.run(database.get_agents()), [])
+
     def test_deploy_compile_failure_returns_error(self):
         from types import SimpleNamespace
         from unittest import mock as mock_mod

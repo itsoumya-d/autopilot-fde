@@ -57,6 +57,18 @@ class GuardApiTestCase(unittest.TestCase):
 
 
 class TestDeployRefusals(GuardApiTestCase):
+    def test_topology_validation_returns_422_without_saving_agent(self):
+        import backend.api.agents as agents_mod
+        from backend.deployment.agent_factory import WorkflowValidationError
+        process = self.client.get("/api/processes/").json()[0]
+        with mock.patch.object(agents_mod._factory, "generate_langgraph_code", side_effect=WorkflowValidationError("Unsupported topology")):
+            response = self.client.post("/api/agents/deploy", json={
+                "process_id": process["id"], "name": "Topology rejection", "config": {"mode": "draft"},
+            })
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()["detail"], "Unsupported topology")
+        self.assertEqual(self.client.get("/api/agents/").json(), [])
+
     def test_unknown_process_is_404(self):
         response = self.client.post("/api/agents/deploy", json={
             "process_id": "proc-missing", "name": "Ghost Copilot",
