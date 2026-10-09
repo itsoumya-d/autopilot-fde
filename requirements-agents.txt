@@ -2,5 +2,11 @@
 # Deploying and inspecting agents needs none of these; this file is for the
 # generated bundle (graph.py) and LangGraph Studio / `langgraph dev`.
 #   pip install -r requirements-agents.txt
-langgraph>=0.4,<1.0
-langgraph-checkpoint-sqlite>=2.0,<3.0
+# This graph/checkpointer stack is exercised by the generated-runtime CI job.
+# Keep resume, reducer, and SQLite semantics reproducible when upgrading it.
+langgraph==0.6.11
+langgraph-checkpoint==2.1.2
+langgraph-checkpoint-sqlite==2.0.11
+langgraph-prebuilt==0.6.5
+langgraph-sdk==0.2.15
+langchain-core==1.6.9

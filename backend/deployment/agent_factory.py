@@ -1,4 +1,4 @@
-"""Autonomous Agent Branch & LangGraph Workflow Code Generator (v2).
+"""Approval-gated Agent Branch & LangGraph Workflow Code Generator (v2).
 
 Translates discovered business processes into *first-class* LangGraph state
 machines:
@@ -8,10 +8,10 @@ machines:
   never re-fires side effects (the documented double-execution pitfall).
 - The compiled graph is wired to a persistent checkpointer when
   ``AUTOPILOT_CHECKPOINT_DB`` is set (SqliteSaver), falling back to an
-  in-memory saver for local runs -- paused approvals survive restarts.
-- Graph topology honors mined ``Process.edges`` (probabilities preserved in
-  the spec) instead of forcing a linear chain; unknown topologies fall back
-  to a linear chain deterministically.
+  in-memory saver for local runs. Only SQLite-backed pauses survive restarts.
+- Complete linear mined topologies start at their unique root. Unsupported or
+  incomplete supplied edges fail closed; only processes with no edges use the
+  explicitly ordered activity list. Branching and cycles are not supported.
 - A sibling ``langgraph.json`` is emitted so the agent opens directly in
   LangGraph Studio / `langgraph dev`.
 """
@@ -25,6 +25,10 @@ from backend.models.schema import (
     GeneratedAgentCode,
     Process,
 )
+
+
+class WorkflowValidationError(ValueError):
+    """A workflow cannot be generated without changing its declared semantics."""
 
 
 def _slugify(step_name: str) -> str:
@@ -82,15 +86,25 @@ class AgentFactory:
         registrations: list[str] = []
 
         step_names = [act.name for act in process.activities]
+        slugs = [_slugify(step) for step in step_names]
+        if not slugs or any(not slug for slug in slugs) or len(set(slugs)) != len(slugs):
+            raise WorkflowValidationError("Workflow needs nonempty, uniquely named steps with distinct node identifiers.")
+        if set(config.enabled_steps) - set(step_names):
+            raise WorkflowValidationError("enabled_steps contains names outside this workflow.")
+        edge_pairs = self._topology_pairs(process, slugs)
+        by_slug = dict(zip(slugs, step_names))
+        chain_order = ([edge_pairs[0][0]] + [target for _, target in edge_pairs]) if edge_pairs else slugs
+        ordered_steps = [by_slug[slug] for slug in chain_order]
         hitl_slugs: set[str] = set()
         gate_definitions: list[str] = []
         node_defs: list[str] = []
         registrations: list[str] = []
 
-        for index, step in enumerate(step_names):
+        for index, step in enumerate(ordered_steps):
             node_slug = _slugify(step)
             is_deployed = step in config.enabled_steps if config.enabled_steps else True
-            is_hitl = self._is_hitl_step(step, index, len(step_names), config)
+            # Non-enabled steps remain explicit manual gates, never dropped prerequisites.
+            is_hitl = not is_deployed or self._is_hitl_step(step, index, len(step_names), config)
 
             if is_hitl:
                 hitl_slugs.add(node_slug)
@@ -101,21 +115,30 @@ class AgentFactory:
 def gate_{node_slug}(state: WorkflowState) -> dict:
     \"\"\"Human-in-the-Loop Gate: {step} (native LangGraph interrupt).\"\"\"
     context = state.get("payload", {{}})
-    decision = interrupt({{
-        "type": "human_approval",
-        "step": "{step}",
-        "context_preview": {{k: context[k] for k in list(context)[:10]}},
-        "note": "Resume with Command(resume={{'approved': True|False, 'actor': '...'}})",
-    }})
-    history = state.get("step_history", [])
-    history.append({{"step": "{step}", "status": "human_approved", "decision": decision}})
-    return {{"step_history": history, "current_step": "{step}", "last_decision": decision}}
+    validation_error = None
+    while True:
+        decision = interrupt({{
+            "type": "human_approval",
+            "step": "{step}",
+            "review_kind": "{'manual_step' if not is_deployed else 'approval'}",
+            "adapter_execution": False,
+            "context_preview": {{k: context[k] for k in list(context)[:10]}},
+            "note": "Resume with Command(resume={{'approved': True|False, 'actor': '...'}}). This gate records review only; it never executes the step adapter.",
+            "validation_error": validation_error,
+        }})
+        if (isinstance(decision, dict) and type(decision.get("approved")) is bool
+                and isinstance(decision.get("actor"), str) and decision["actor"].strip()):
+            break
+        # Keep the checkpoint resumable: raising here would retain the invalid
+        # resume value. No history or business action occurs until validation.
+        validation_error = "Decision requires an approved boolean and a nonempty actor string."
+    decision = {{"approved": decision["approved"], "actor": decision["actor"].strip()}}
+    event = {{"step": "{step}", "status": "human_approved" if decision["approved"] else "human_rejected", "decision": decision}}
+    return {{"step_history": [event], "current_step": "{step}", "last_decision": decision,
+            "is_escalated": not decision["approved"]}}
 """.strip())
                 registrations.append(f'workflow.add_node("gate_{node_slug}", gate_{node_slug})')
                 tools.append(f"tool_{node_slug}")
-                continue
-
-            if not is_deployed:
                 continue
 
             node_defs.append(f"""
@@ -123,9 +146,8 @@ def node_{node_slug}(state: WorkflowState) -> dict:
     \"\"\"Automated Step: {step}\"\"\"
     context = state.get("payload", {{}})
     result = execute_agent_step(step_name="{step}", context=context)
-    history = state.get("step_history", [])
-    history.append({{"step": "{step}", "status": "automated", "result": result}})
-    return {{"step_history": history, "current_step": "{step}"}}
+    event = {{"step": "{step}", "status": "automated", "result": result}}
+    return {{"step_history": [event], "current_step": "{step}"}}
 """.strip())
             registrations.append(f'workflow.add_node("node_{node_slug}", node_{node_slug})')
             tools.append(f"tool_{node_slug}")
@@ -134,12 +156,6 @@ def node_{node_slug}(state: WorkflowState) -> dict:
             """Full node id: HITL checkpoints live on gate_ prefixed nodes."""
             return f"gate_{slug}" if slug in hitl_slugs else f"node_{slug}"
 
-        chain_order = [
-            _slugify(s) for i, s in enumerate(step_names)
-            if _slugify(s) in hitl_slugs
-            or s in (config.enabled_steps or [s2.name for s2 in process.activities])
-        ]
-        edge_pairs = self._topology_pairs(process, chain_order)
         if edge_pairs is not None:
             first_id = _q(edge_pairs[0][0])
             assembly = self._assemble_from_pairs(edge_pairs, _q)
@@ -179,6 +195,11 @@ def execute_agent_step(step_name: str, context: dict) -> dict:
     # adapters (read-only, draft writing, internal webhook). EXTERNAL_WRITE and
     # CRITICAL_TRANSACTION tiers raise StructuralGateError by construction.
     return _dispatch_tool_step(step_name=step_name, context=context)
+
+def route_after_approval(state: WorkflowState) -> str:
+    # Gate decisions are validated before they reach this route. Rejection
+    # terminates the graph; no unconditional outgoing gate edge is installed.
+    return "continue" if state["last_decision"]["approved"] is True else "reject"
 
 def _default_checkpointer():
     """SqliteSaver when AUTOPILOT_CHECKPOINT_DB is set (and extra installed);
@@ -230,26 +251,52 @@ app = build_agent_graph()
     def _topology_pairs(
         self, process: Process, chain_order: list[str],
     ) -> list[tuple[str, str]] | None:
-        """Mined-edge topology mapped to slugs, or None when unusable.
+        """Return a root-ordered linear topology, or None only when no edges exist.
 
-        A mined topology is honored only when every edge references known
-        steps and every step appears at least once -- otherwise work would be
-        silently dropped, so we fall back to the deterministic linear chain.
+        A probability ranks observed transitions; it does not define an entry
+        point. Do not silently rewrite branching, cyclic, incomplete or filtered
+        graphs into a different execution order.
         """
+        if not process.edges:
+            return None
         valid = set(chain_order)
-        pairs: list[tuple[str, str]] = []
-        for edge in sorted(process.edges, key=lambda e: (-e.probability, e.source, e.target)):
+        names = {activity.name for activity in process.activities}
+        pairs: set[tuple[str, str]] = set()
+        for edge in process.edges:
+            if edge.source not in names or edge.target not in names:
+                raise WorkflowValidationError("Mined edges must reference exact workflow step names.")
             source, target = _slugify(edge.source), _slugify(edge.target)
             if source not in valid or target not in valid or source == target:
-                return None
-            if (source, target) not in pairs:
-                pairs.append((source, target))
-        if not pairs:
-            return None
-        touched = {n for pair in pairs for n in pair}
-        if touched != valid:
-            return None
-        return pairs
+                raise WorkflowValidationError("Mined edges must reference distinct enabled workflow steps.")
+            pairs.add((source, target))
+        successors: dict[str, str] = {}
+        predecessors: dict[str, str] = {}
+        for source, target in pairs:
+            if source in successors or target in predecessors:
+                raise WorkflowValidationError("Branching and converging mined workflows are not supported.")
+            successors[source] = target
+            predecessors[target] = source
+        roots = valid - set(predecessors)
+        if len(roots) != 1:
+            raise WorkflowValidationError("Mined workflow must have exactly one root; cycles and disconnected graphs are rejected.")
+        current = next(iter(roots))
+        visited = {current}
+        ordered: list[tuple[str, str]] = []
+        while current in successors:
+            target = successors[current]
+            ordered.append((current, target))
+            visited.add(target)
+            current = target
+        if visited != valid:
+            raise WorkflowValidationError("Mined edges must connect every enabled step in one complete chain.")
+        return ordered
+
+    def _transition(self, source: str, target: str) -> str:
+        destination = "END" if target == "END" else f'"{target}"'
+        if source.startswith("gate_"):
+            return (f'workflow.add_conditional_edges("{source}", route_after_approval, '
+                    f'{{"continue": {destination}, "reject": END}})')
+        return f'workflow.add_edge("{source}", {destination})'
 
     def _assemble_from_pairs(
         self, pairs: list[tuple[str, str]], qualify,
@@ -258,21 +305,18 @@ app = build_agent_graph()
         targets = {t for _, t in pairs}
         lines = [f'workflow.set_entry_point("{qualify(pairs[0][0])}")']
         for source, target in pairs:
-            lines.append(f'workflow.add_edge("{qualify(source)}", "{qualify(target)}")')
+            lines.append(self._transition(qualify(source), qualify(target)))
         for terminal in sorted(targets - sources):
-            lines.append(f'workflow.add_edge("{qualify(terminal)}", END)')
+            lines.append(self._transition(qualify(terminal), "END"))
         return ["    " + line for line in lines]
 
     def _assemble_linear(self, chain_order: list[str], qualify) -> list[str]:
-        first = qualify(chain_order[0]) if chain_order else "node_init"
+        first = qualify(chain_order[0])
         lines = [f'workflow.set_entry_point("{first}")']
         for i in range(len(chain_order) - 1):
-            lines.append(
-                f'workflow.add_edge("{qualify(chain_order[i])}", '
-                f'"{qualify(chain_order[i + 1])}")'
-            )
-        terminal = qualify(chain_order[-1]) if chain_order else first
-        lines.append(f'workflow.add_edge("{terminal}", END)')
+            lines.append(self._transition(qualify(chain_order[i]), qualify(chain_order[i + 1])))
+        terminal = qualify(chain_order[-1])
+        lines.append(self._transition(terminal, "END"))
         return ["    " + line for line in lines]
 
     def langgraph_config(self, agent_name: str) -> dict:

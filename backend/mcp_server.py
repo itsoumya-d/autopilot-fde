@@ -228,7 +228,7 @@ async def tool_deploy_agent(args: dict[str, Any]) -> dict[str, Any]:
     from uuid import uuid4
 
     from backend import database
-    from backend.deployment.agent_factory import AgentFactory
+    from backend.deployment.agent_factory import AgentFactory, WorkflowValidationError
     from backend.models.schema import AgentBranch, DeploymentConfig, DeploymentMode
 
     process_id = str(args.get("process_id", "")).strip()
@@ -261,7 +261,10 @@ async def tool_deploy_agent(args: dict[str, Any]) -> dict[str, Any]:
             )
         config.enabled_steps = list(enabled_steps)
 
-    generated = AgentFactory().generate_langgraph_code(process, config, name)
+    try:
+        generated = AgentFactory().generate_langgraph_code(process, config, name)
+    except WorkflowValidationError as error:
+        raise ToolError(f"Workflow topology is not executable: {error}") from error
     try:
         compile(generated.python_code, "<generated>", "exec")
     except SyntaxError as error:

@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from .. import database
-from ..deployment.agent_factory import AgentFactory
+from ..deployment.agent_factory import AgentFactory, WorkflowValidationError
 from ..models.schema import AgentBranch, AgentStatus, DeploymentConfig, DeploymentMode
 from ..security import require_api_key
 
@@ -99,12 +99,14 @@ async def deploy_agent(request: DeployAgentRequest, http: Request) -> AgentBranc
     )
     _audit(agent, "deploy", _actor(http))
     # Generate the LangGraph program at deploy time and prove it parses before
-    # storing it. The generated code is inert by design (execute_agent_step
-    # raises until a human wires tools), but it must never be syntactically
-    # broken -- a stored artifact that cannot compile is worse than none.
-    agent.generated_code = _factory.generate_langgraph_code(
-        process, request.config, request.name,
-    )
+    # storing it. Generation does not execute adapters. Runtime safety and
+    # approval behavior are verified separately by the optional runtime suite.
+    try:
+        agent.generated_code = _factory.generate_langgraph_code(
+            process, request.config, request.name,
+        )
+    except WorkflowValidationError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
     try:
         # compile() is stricter than parse(): it rejects anything that would
         # only fail at first execution of a statement.
