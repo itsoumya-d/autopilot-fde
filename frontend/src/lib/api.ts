@@ -61,20 +61,28 @@ export interface APScore {
   estimated_hours_saved_monthly: number;
 }
 
+// Mirrors backend AgentStatus (models/schema.py). Keep in sync.
+export type AgentStatus = 'pending_approval' | 'deploying' | 'running' | 'paused' | 'stopped' | 'failed';
+
 export interface Agent {
   id: string;
   process_id: string;
   name: string;
-  status: 'pending_approval' | 'running' | 'paused';
+  status: AgentStatus;
   config: {
     traffic_percentage: number;
     enabled_steps: string[];
     approval_required: boolean;
-    mode: 'draft';
+    mode: 'draft' | 'assisted' | 'autonomous';
     confidence_threshold: number;
   };
   created_at: string;
-  metrics: Record<string, number | null>;
+  metrics: {
+    [key: string]: unknown;
+    drafts_created?: number | null;
+    external_actions?: number | null;
+    human_approval_rate?: number | null;
+  };
 }
 
 export interface DashboardSummary {
@@ -140,6 +148,7 @@ export const api = {
   deploy: (payload: { process_id: string; name: string; config: Agent['config'] }) => request<Agent>('/agents/deploy', { method: 'POST', body: JSON.stringify(payload) }),
   approveAgent: (id: string) => request<Agent>(`/agents/${id}/approve`, { method: 'POST' }),
   pauseAgent: (id: string) => request<Agent>(`/agents/${id}/pause`, { method: 'POST' }),
+  resumeAgent: (id: string) => request<Agent>(`/agents/${id}/resume`, { method: 'POST' }),
   removeAgent: (id: string) => request<{ message: string }>(`/agents/${id}`, { method: 'DELETE' }),
   objectLog: (limit = 500) =>
     request<ObjectLogResponse>(`/processes/object-log?limit=${limit}`),

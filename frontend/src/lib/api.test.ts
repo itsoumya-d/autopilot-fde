@@ -8,7 +8,7 @@ const fail = (status: number, detail: string) =>
   new Response(JSON.stringify({ detail }), { status });
 
 describe('api request layer', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
   it('returns parsed JSON on success', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ok({ status: 'ok' })));
@@ -50,6 +50,24 @@ describe('api request layer', () => {
     const headers = init?.headers as Record<string, string>;
     expect(headers['Content-Type']).toBe('application/json');
     expect(JSON.parse(String(init?.body ?? '{}'))).toMatchObject({ process_id: 'p1' });
+  });
+
+  it('maps resume to POST and preserves the returned record', async () => {
+    const result = { id: 'agent-9', status: 'running' };
+    const fetchMock = vi.fn(async (_url: unknown, _init?: RequestInit) => ok(result));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(api.resumeAgent('agent-9')).resolves.toEqual(result);
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringMatching(/\/api\/agents\/agent-9\/resume$/), expect.objectContaining({ method: 'POST' }));
+  });
+
+  it('uses the configured API base for resume without adding browser credentials', async () => {
+    vi.stubEnv('NEXT_PUBLIC_API_URL', 'https://backend.example.test/prefix/api///');
+    vi.resetModules();
+    const { api: configuredApi } = await import('./api');
+    const fetchMock = vi.fn(async (_url: unknown, _init?: RequestInit) => ok({ id: 'agent-9', status: 'running' }));
+    vi.stubGlobal('fetch', fetchMock);
+    await configuredApi.resumeAgent('agent-9');
+    expect(fetchMock).toHaveBeenCalledWith('https://backend.example.test/prefix/api/agents/agent-9/resume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store' });
   });
 
   it('maps delete to the right path', async () => {
