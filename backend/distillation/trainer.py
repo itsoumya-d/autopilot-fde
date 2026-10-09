@@ -15,7 +15,7 @@ class RecipeExporter:
         """Generates Unsloth fast fine-tuning script."""
         return f'''# AutoPilot FDE Distillation - Unsloth Recipe
 # Teacher: {job.teacher_model.value} -> Student: {job.student_model.value}
-# Legal Compliance: Internal Enterprise Use Attestation Verified
+# Usage declarations recorded; review data rights and model licenses before use.
 
 import torch
 from unsloth import FastLanguageModel
@@ -84,7 +84,7 @@ print("Fine-tuning complete. Model saved to {job.output_dir}/gguf")
     def generate_ollama_modelfile(job: DistillationJob) -> str:
         """Generates an Ollama Modelfile for one-command local deployment."""
         return f'''# AutoPilot FDE Ollama Deployment Manifest
-# Distilled from Teacher: {job.teacher_model.value}
+# Teacher reference (metadata only): {job.teacher_model.value}
 FROM {job.output_dir}/gguf/unsloth.Q4_K_M.gguf
 
 TEMPLATE """{{{{ if .System }}}}<|system|>
@@ -108,7 +108,7 @@ SYSTEM """You are an enterprise forward-deployed specialist distilled for intern
         """Generates a vLLM high-throughput OpenAI-compatible server launch script."""
         return f'''#!/usr/bin/env bash
 # Launch distilled in-VPC OpenAI-compatible inference server
-# Perpetual license, zero cloud API fees.
+# Review model licenses, runtime dependencies, and infrastructure costs before use.
 vllm serve {job.output_dir}/checkpoints \\
     --port 8000 \\
     --served-model-name custom-fde-agent \\

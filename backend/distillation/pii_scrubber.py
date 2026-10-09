@@ -1,7 +1,7 @@
-"""GDPR & EU AI Act compliant automated PII (Personally Identifiable Information) scrubber.
+"""Pattern-based redaction helpers for selected identifiers and secrets.
 
-Pre-processes all enterprise operational messages, emails, and ticket data before
-distillation or fine-tuning dataset generation to guarantee zero personal data leakage.
+Regex matching is incomplete and does not establish anonymization or compliance.
+Review generated datasets for remaining sensitive information before use.
 """
 
 from __future__ import annotations

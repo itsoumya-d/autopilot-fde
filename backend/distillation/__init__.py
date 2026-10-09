@@ -1,8 +1,6 @@
-"""Compliant Model Distillation Studio for AutoPilot FDE.
+"""Local dataset and training-recipe generation for AutoPilot FDE.
 
-Enables distillation of business extraction, reasoning, and routing logic
-from frontier teacher models (GPT-4o, Claude 3.5, DeepSeek-R1) into compact,
-perpetual in-VPC student models (Qwen 2.5, Llama 3.1, Mistral).
+No teacher model is called, and no training or deployment is performed here.
 """
 
 from .engine import DistillationEngine

@@ -1,4 +1,4 @@
-"""Distillation engine orchestrating dataset curation, PII scrubbing, and legal compliance."""
+"""Local dataset formatting, pattern-based redaction, and recipe generation."""
 
 from __future__ import annotations
 
@@ -14,6 +14,10 @@ from ..models.schema import (
 )
 from .pii_scrubber import PIIScrubber
 from .trainer import RecipeExporter
+
+
+class MissingSourceEvidenceError(ValueError):
+    """No matched workspace evidence, and synthetic examples were not requested."""
 
 
 class DistillationEngine:
@@ -92,7 +96,6 @@ class DistillationEngine:
 
         job.status = DistillationStatus.SCRUBBING_PII
         target_dir = Path(base_dir) / job.id
-        target_dir.mkdir(parents=True, exist_ok=True)
 
         rows: list[dict[str, Any]] = []
         total_pii_count = 0
@@ -126,8 +129,16 @@ class DistillationEngine:
                 rows.append(sample["data"])
                 total_pii_count += sample["redactions"]
 
-        # If no messages were matched, create synthetic representative domain samples
+        # Never silently substitute fabricated examples for missing source evidence.
+        job.used_synthetic_samples = False
         if not rows:
+            if not job.allow_synthetic_samples:
+                job.status = DistillationStatus.FAILED
+                raise MissingSourceEvidenceError(
+                    "No source evidence matched workspace processes. Import and discover data first, "
+                    "or explicitly enable synthetic demo samples for recipe testing."
+                )
+            job.used_synthetic_samples = True
             synthetic_samples = [
                 (
                     "Customer #4092 requests priority invoice payment of $12,400 for vendor CloudScale.",
@@ -152,6 +163,7 @@ class DistillationEngine:
                 rows.append(sample["data"])
                 total_pii_count += sample["redactions"]
 
+        target_dir.mkdir(parents=True, exist_ok=True)
         dataset_file = target_dir / f"dataset_{job.training_format}.jsonl"
         with dataset_file.open("w", encoding="utf-8") as f:
             for r in rows:

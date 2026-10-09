@@ -105,19 +105,28 @@ export interface ObjectLogResponse {
   summaries: Record<string, { objects: number; events_touching: number }>;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api').replace(/\/+$/, '');
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...init?.headers },
     cache: 'no-store',
   });
   if (!response.ok) {
-    const body = await response.json().catch(() => ({ detail: 'Request failed' }));
-    throw new Error(body.detail || 'Request failed');
+    const body: unknown = await response.json().catch(() => null);
+    const detail = body && typeof body === 'object' && 'detail' in body ? body.detail : null;
+    // FastAPI validation errors use an array; never render [object Object].
+    const message = typeof detail === 'string' ? detail : Array.isArray(detail)
+      ? detail.flatMap(item => item && typeof item === 'object' && typeof item.msg === 'string' ? [item.msg] : []).join('; ')
+      : '';
+    throw new Error(message || 'Request failed');
   }
-  return response.json() as Promise<T>;
+  try {
+    return await response.json() as T;
+  } catch {
+    throw new Error('The backend returned invalid JSON. Check the API URL and backend response.');
+  }
 }
 
 export const api = {

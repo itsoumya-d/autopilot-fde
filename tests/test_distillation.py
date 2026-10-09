@@ -1,4 +1,4 @@
-"""Tests for Model Distillation Studio, PII scrubber, and legal compliance."""
+"""Tests for recipe generation, pattern-based redaction, and usage attestations."""
 
 from __future__ import annotations
 
@@ -7,11 +7,12 @@ from datetime import datetime, UTC
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 
 import backend.database as database
 import backend.main as main_mod
-from backend.distillation.engine import DistillationEngine
+from backend.distillation.engine import DistillationEngine, MissingSourceEvidenceError
 from backend.distillation.pii_scrubber import PIIScrubber
 from backend.distillation.trainer import RecipeExporter
 from backend.models.schema import (
@@ -135,20 +136,23 @@ class TestDistillationSuite(unittest.TestCase):
 
         completed = DistillationEngine.execute_job(job, [proc], [msg], base_dir=tmp_path)
         assert completed.status == DistillationStatus.COMPLETED
-        assert completed.sample_count >= 1
+        assert completed.sample_count == 1
+        assert completed.used_synthetic_samples is False
 
-    def test_distillation_engine_fallback_synthetic_and_attestation_failure(self):
+    def test_distillation_engine_explicit_synthetic_and_attestation_failure(self):
         tmp_path = Path(self._tmp.name) / "engine_fallback"
         job_fallback = DistillationJob(
             id="DISTILL-FALLBACK",
+            allow_synthetic_samples=True,
             teacher_model=TeacherModel.DEEPSEEK_R1,
             student_model=StudentModel.QWEN_2_5_7B,
             training_format="alpaca",
         )
-        # Empty processes triggers synthetic fallback generation
+        # Empty processes permit synthetic samples only with explicit opt-in.
         completed = DistillationEngine.execute_job(job_fallback, [], [], base_dir=tmp_path)
         assert completed.status == DistillationStatus.COMPLETED
-        assert completed.sample_count >= 3
+        assert completed.sample_count == 3
+        assert completed.used_synthetic_samples is True
 
         # Attestation failure directly in execute_job
         job_fail = DistillationJob(
@@ -219,3 +223,55 @@ class TestDistillationSuite(unittest.TestCase):
             },
         )
         assert resp_fail.status_code == 400
+
+
+    def test_distillation_engine_requires_source_evidence_by_default(self):
+        target = Path(self._tmp.name) / "no_evidence"
+        job = DistillationJob(
+            id="DISTILL-NO-EVIDENCE",
+            teacher_model=TeacherModel.GPT_4O,
+            student_model=StudentModel.QWEN_2_5_7B,
+        )
+        assert job.allow_synthetic_samples is False
+        with self.assertRaisesRegex(MissingSourceEvidenceError, "No source evidence"):
+            DistillationEngine.execute_job(job, [], [], base_dir=target)
+        assert job.status == DistillationStatus.FAILED
+        assert job.used_synthetic_samples is False
+        assert job.generated_recipe_files == []
+        assert not target.exists()
+
+    def test_distillation_api_requires_explicit_attestations(self):
+        resp = self.client.post("/api/distillation/jobs", json={})
+        assert resp.status_code == 400
+        assert "Both usage attestations" in resp.json()["detail"]
+
+    def test_distillation_api_missing_evidence_and_explicit_demo(self):
+        payload = {
+            "attest_internal_use_only": True,
+            "commercial_foundation_competition_waiver": True,
+        }
+        before = self.client.get("/api/distillation/jobs").json()
+        with patch("backend.api.distillation.get_processes", new=AsyncMock(return_value=[])), patch(
+            "backend.api.distillation.get_messages", new=AsyncMock(return_value=[])
+        ):
+            missing = self.client.post("/api/distillation/jobs", json=payload)
+            assert missing.status_code == 422
+            assert "No source evidence" in missing.json()["detail"]
+            assert self.client.get("/api/distillation/jobs").json() == before
+            demo = self.client.post("/api/distillation/jobs", json={**payload, "allow_synthetic_samples": True})
+        assert demo.status_code == 200
+        data = demo.json()
+        assert data["allow_synthetic_samples"] is True
+        assert data["used_synthetic_samples"] is True
+        assert data["sample_count"] == 3
+        assert data["status"] == "completed"
+        assert all(Path(filename).exists() for filename in data["generated_recipe_files"])
+        assert self.client.get(f"/api/distillation/jobs/{data['id']}").json()["used_synthetic_samples"] is True
+
+    def test_distillation_api_rejects_unsupported_dataset_format(self):
+        resp = self.client.post("/api/distillation/jobs", json={
+            "attest_internal_use_only": True,
+            "commercial_foundation_competition_waiver": True,
+            "training_format": "unknown-format",
+        })
+        assert resp.status_code == 422
