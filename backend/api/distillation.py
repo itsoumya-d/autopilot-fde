@@ -1,15 +1,15 @@
-"""FastAPI router for Model Distillation Studio and In-VPC Training."""
+"""Dataset and recipe generation endpoints; no model training or provider calls."""
 
 from __future__ import annotations
 
 import uuid
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from ..database import get_messages, get_processes
-from ..distillation.engine import DistillationEngine
+from ..distillation.engine import DistillationEngine, MissingSourceEvidenceError
 from ..distillation.pii_scrubber import PIIScrubber
 from ..models.schema import DistillationJob, StudentModel, TeacherModel
 
@@ -25,9 +25,10 @@ class ScrubPreviewRequest(BaseModel):
 class CreateJobRequest(BaseModel):
     teacher_model: TeacherModel = TeacherModel.GPT_4O
     student_model: StudentModel = StudentModel.QWEN_2_5_7B
-    training_format: str = "alpaca"
-    attest_internal_use_only: bool = True
-    commercial_foundation_competition_waiver: bool = True
+    training_format: Literal["alpaca", "openai"] = "alpaca"
+    attest_internal_use_only: bool = False
+    commercial_foundation_competition_waiver: bool = False
+    allow_synthetic_samples: bool = False
     epochs: int = 3
     batch_size: int = 4
     learning_rate: float = 2e-4
@@ -36,31 +37,31 @@ class CreateJobRequest(BaseModel):
 
 @router.get("/models", summary="List supported Teacher and Student models")
 async def list_models() -> dict[str, Any]:
-    """Returns available teacher models, student models, and licensing compliance notes."""
+    """Returns supported recipe model references. Selection grants no usage rights."""
     return {
         "teachers": [
             {
                 "id": TeacherModel.GPT_4O.value,
                 "name": "OpenAI GPT-4o",
-                "compliance_mode": "Official OpenAI Distillation API / Internal Task-Specific Exemption",
+                "compliance_mode": "Metadata only; review current provider terms before using model outputs",
                 "recommended_for": "Complex reasoning, tool calling, and high-entropy extraction",
             },
             {
                 "id": TeacherModel.CLAUDE_3_5_SONNET.value,
                 "name": "Anthropic Claude 3.5 Sonnet",
-                "compliance_mode": "LLM-as-a-Judge Active Learning & Ground Truth Curation",
+                "compliance_mode": "Metadata only; review current provider terms before using model outputs",
                 "recommended_for": "Coding, state machine logic, and regulatory analysis",
             },
             {
                 "id": TeacherModel.DEEPSEEK_R1.value,
                 "name": "DeepSeek-R1 (Open Frontier)",
-                "compliance_mode": "MIT License - 100% Unrestricted Commercial Distillation",
-                "recommended_for": "Zero ToS risk, complex math, and open derivative models",
+                "compliance_mode": "Metadata only; verify the selected model license and permitted use",
+                "recommended_for": "Open model recipe exploration; no teacher call is performed",
             },
             {
                 "id": TeacherModel.LLAMA_3_1_405B.value,
                 "name": "Meta Llama 3.1 405B Instruct",
-                "compliance_mode": "Llama 3 Community License - Permitted Derivative Improvement",
+                "compliance_mode": "Metadata only; review applicable model license and usage restrictions",
                 "recommended_for": "Enterprise data sovereignty and private cloud hosting",
             },
         ],
@@ -113,7 +114,7 @@ async def create_distillation_job(req: CreateJobRequest) -> DistillationJob:
     if not req.attest_internal_use_only or not req.commercial_foundation_competition_waiver:
         raise HTTPException(
             status_code=400,
-            detail="Legal compliance error: You must attest that this model is for internal enterprise workflow automation and will not be used to develop a competing commercial foundation model.",
+            detail="Both usage attestations are required. They do not grant a license or establish legal compliance.",
         )
 
     job_id = f"DISTILL-{uuid.uuid4().hex[:6].upper()}"
@@ -128,12 +129,16 @@ async def create_distillation_job(req: CreateJobRequest) -> DistillationJob:
         batch_size=req.batch_size,
         learning_rate=req.learning_rate,
         quantization=req.quantization,
+        allow_synthetic_samples=req.allow_synthetic_samples,
     )
 
     processes = await get_processes()
     messages = await get_messages()
 
-    job = DistillationEngine.execute_job(job, processes, messages)
+    try:
+        job = DistillationEngine.execute_job(job, processes, messages)
+    except MissingSourceEvidenceError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     _JOBS[job_id] = job
     return job
 

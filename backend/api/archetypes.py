@@ -8,10 +8,10 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from ..archetypes.project1_knowledge_rag import PermissionAwareRAG
-from ..archetypes.project2_intake_resolution import IntakeOrchestrator
+from ..archetypes.project2_intake_resolution import IntakeOrchestrator, IntakeTransitionError
 from ..archetypes.project3_document_intel import DocumentIntelligenceEngine
 from ..archetypes.project4_data_onboarding import DataOnboardingPipeline
-from ..archetypes.project5_operations_cmd import OperationsCommandCenter
+from ..archetypes.project5_operations_cmd import IncidentTransitionError, OperationsCommandCenter
 from ..models.schema import (
     ChannelType,
     DocumentValidationReport,
@@ -56,17 +56,19 @@ class ApproveTicketRequest(BaseModel):
     operator: str = "Lead FDE"
 
 
-@router.post("/project2/ticket", response_model=IntakeTicket, summary="Ingest request into stateful LangGraph-style workflow")
+@router.post("/project2/ticket", response_model=IntakeTicket, summary="Ingest request into a synthetic in-memory workflow")
 async def ingest_ticket(req: IngestTicketRequest) -> IntakeTicket:
     return _intake_orchestrator.ingest_ticket(req.customer, req.channel, req.content)
 
 
-@router.post("/project2/approve", response_model=IntakeTicket, summary="Resume paused state machine with human approval")
+@router.post("/project2/approve", response_model=IntakeTicket, summary="Advance a pending demo ticket with human approval")
 async def approve_ticket(req: ApproveTicketRequest) -> IntakeTicket:
     try:
         return _intake_orchestrator.approve_ticket(req.ticket_id, req.approval_token, req.operator)
     except KeyError as e:
         raise HTTPException(status_code=404, detail="Ticket not found") from e
+    except IntakeTransitionError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
@@ -137,13 +139,15 @@ async def ingest_alert(req: IngestAlertRequest) -> dict[str, str]:
     return {"status": "alert_ingested", "alert_id": alert.id}
 
 
-@router.post("/project5/correlate-and-remediate", summary="Correlate alerts into incident and execute closed-loop remediation")
+@router.post("/project5/correlate-and-remediate", summary="Correlate alerts and simulate an in-memory remediation")
 async def correlate_and_remediate(simulate_incident: bool = True) -> dict[str, Any]:
     if simulate_incident:
         _cmd_center.ingest_alert(TelemetryAlert(id="ALT-01", service="postgresql-primary", metric="connection_pool_saturation", severity="critical", value=98.5, threshold=85.0))
         _cmd_center.ingest_alert(TelemetryAlert(id="ALT-02", service="api-gateway", metric="http_504_gateway_timeout_rate", severity="critical", value=14.2, threshold=1.0))
 
-    incidents = _cmd_center.correlate_incidents()
+    # Correlation also returns history. Only a fresh, ready incident may advance;
+    # never re-execute a previous remediation or resurrect a rolled-back one.
+    incidents = [inc for inc in _cmd_center.correlate_incidents() if inc.state == "ready_for_execution"]
     if not incidents:
         return {"status": "no_incidents", "incidents": []}
 
@@ -163,11 +167,13 @@ class RollbackRequest(BaseModel):
     operator: str = "On-Call SRE Lead"
 
 
-@router.post("/project5/rollback", summary="1-click transactional rollback for executed remediation")
+@router.post("/project5/rollback", summary="Simulate a single-use rollback of an in-memory remediation")
 async def rollback_action(req: RollbackRequest) -> dict[str, Any]:
     try:
         return _cmd_center.rollback_action(req.incident_id, req.rollback_token, req.operator)
     except KeyError as e:
         raise HTTPException(status_code=404, detail="Incident not found") from e
+    except IncidentTransitionError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e

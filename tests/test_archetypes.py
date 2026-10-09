@@ -13,10 +13,10 @@ import backend.database as database
 import backend.main as main_mod
 import backend.api.archetypes as archetypes_api
 from backend.archetypes.project1_knowledge_rag import PermissionAwareRAG
-from backend.archetypes.project2_intake_resolution import IntakeOrchestrator
+from backend.archetypes.project2_intake_resolution import IntakeOrchestrator, IntakeTransitionError
 from backend.archetypes.project3_document_intel import DocumentIntelligenceEngine
 from backend.archetypes.project4_data_onboarding import DataOnboardingPipeline
-from backend.archetypes.project5_operations_cmd import OperationsCommandCenter
+from backend.archetypes.project5_operations_cmd import IncidentTransitionError, OperationsCommandCenter
 from backend.discovery.synthesizer import WorkflowSynthesizer
 from backend.models.schema import (
     ArchetypeType,
@@ -121,15 +121,15 @@ class TestArchetypesSuite(unittest.TestCase):
         list_resp = self.client.get("/api/archetypes/project2/tickets")
         assert list_resp.status_code == 200
 
+        # Approve with wrong token returns 400 without consuming approval
+        appr_fail = self.client.post("/api/archetypes/project2/approve", json={"ticket_id": t_id, "approval_token": "BAD-TOKEN"})
+        assert appr_fail.status_code == 400
+        assert appr_fail.json() == {"detail": "Invalid approval token"}
+
         # Approve ticket API
         appr_resp = self.client.post("/api/archetypes/project2/approve", json={"ticket_id": t_id, "approval_token": t_token})
         assert appr_resp.status_code == 200
         assert appr_resp.json()["status"] == "resolved"
-
-        # Approve with wrong token returns 400
-        appr_fail = self.client.post("/api/archetypes/project2/approve", json={"ticket_id": t_id, "approval_token": "BAD-TOKEN"})
-        assert appr_fail.status_code == 400
-        assert appr_fail.json() == {"detail": "Invalid approval token"}
 
         # Approve unknown ticket returns 404
         appr_404 = self.client.post("/api/archetypes/project2/approve", json={"ticket_id": "TICK-UNKNOWN", "approval_token": "T"})
@@ -261,15 +261,15 @@ class TestArchetypesSuite(unittest.TestCase):
         inc_id = data["incident"]["incident_id"]
         rb_token = data["rollback_token"]
 
+        # Rollback API rejects wrong tokens without changing the incident
+        rb_fail = self.client.post("/api/archetypes/project5/rollback", json={"incident_id": inc_id, "rollback_token": "BAD-TOKEN"})
+        assert rb_fail.status_code == 400
+        assert rb_fail.json() == {"detail": "Invalid rollback token"}
+
         # Rollback API
         rb_resp = self.client.post("/api/archetypes/project5/rollback", json={"incident_id": inc_id, "rollback_token": rb_token})
         assert rb_resp.status_code == 200
         assert rb_resp.json()["status"] == "success"
-
-        # Rollback API error handling
-        rb_fail = self.client.post("/api/archetypes/project5/rollback", json={"incident_id": inc_id, "rollback_token": "BAD-TOKEN"})
-        assert rb_fail.status_code == 400
-        assert rb_fail.json() == {"detail": "Invalid rollback token"}
 
         rb_404 = self.client.post("/api/archetypes/project5/rollback", json={"incident_id": "INC-UNKNOWN", "rollback_token": "T"})
         assert rb_404.status_code == 404
@@ -315,14 +315,20 @@ class TestArchetypesSuite(unittest.TestCase):
         ("approve_ticket", "_intake_orchestrator", "approve_ticket",
          archetypes_api.ApproveTicketRequest(ticket_id="existing", approval_token="invalid"),
          ValueError("Invalid approval token"), 400, "Invalid approval token"),
+        ("approve_ticket", "_intake_orchestrator", "approve_ticket",
+         archetypes_api.ApproveTicketRequest(ticket_id="resolved", approval_token="used"),
+         IntakeTransitionError("Ticket is not awaiting approval"), 409, "Ticket is not awaiting approval"),
         ("rollback_action", "_cmd_center", "rollback_action",
          archetypes_api.RollbackRequest(incident_id="missing", rollback_token="token"),
          KeyError("Incident missing not found"), 404, "Incident not found"),
         ("rollback_action", "_cmd_center", "rollback_action",
          archetypes_api.RollbackRequest(incident_id="existing", rollback_token="invalid"),
          ValueError("Invalid rollback token"), 400, "Invalid rollback token"),
+        ("rollback_action", "_cmd_center", "rollback_action",
+         archetypes_api.RollbackRequest(incident_id="rolled-back", rollback_token="used"),
+         IncidentTransitionError("Incident is not eligible for rollback"), 409, "Incident is not eligible for rollback"),
     ],
-    ids=["missing-ticket", "invalid-approval", "missing-incident", "invalid-rollback"],
+    ids=["missing-ticket", "invalid-approval", "stale-approval", "missing-incident", "invalid-rollback", "stale-rollback"],
 )
 def test_archetype_http_errors_preserve_domain_cause(
     monkeypatch, handler_name, engine_name, method_name, payload, cause, status, detail,

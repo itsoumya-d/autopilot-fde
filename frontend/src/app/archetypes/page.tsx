@@ -1,479 +1,204 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Shield, GitBranch, FileText, Database, Radio, CheckCircle, AlertTriangle, ArrowRight, RotateCcw, Lock } from 'lucide-react';
+import React, { useMemo, useRef, useState } from 'react';
+import { Shield, GitBranch, FileText, Database, Radio, CheckCircle, AlertTriangle, RotateCcw } from 'lucide-react';
+import {
+  connectedWorkbench, createDemoWorkbench,
+  type WorkbenchClient, type WorkbenchMode, type KnowledgeRole, type KnowledgeResult,
+  type IntakeTicket, type InvoiceReport, type OnboardingResult, type IncidentResult, type RollbackResult,
+} from '@/lib/workbench';
+import { useWorkbenchAction } from './use-workbench-action';
+
+const focus = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950';
+const button = `px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors motion-reduce:transition-none ${focus}`;
+const input = `w-full min-w-0 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white ${focus}`;
+const tabs = [
+  { id: 'project1', label: '1. Knowledge RAG', icon: Shield },
+  { id: 'project2', label: '2. Intake-to-Resolution', icon: GitBranch },
+  { id: 'project3', label: '3. Document Intelligence', icon: FileText },
+  { id: 'project4', label: '4. Data Onboarding', icon: Database },
+  { id: 'project5', label: '5. Ops Command Center', icon: Radio },
+] as const;
+type Tab = typeof tabs[number]['id'];
+type PanelProps = { client: WorkbenchClient; mode: WorkbenchMode };
+
+function ResultBox({ title, pending, error, mode, children }: {
+  title: string; pending: boolean; error: string | null; mode: WorkbenchMode; children: React.ReactNode;
+}) {
+  return <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 min-w-0 space-y-3">
+    <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">{title}</h3>
+    <p className="text-xs text-slate-400">{mode === 'demo' ? 'Source: local synthetic example' : 'Source: connected API · synthetic sample workflow'}</p>
+    {error && <p role="alert" className="text-sm text-rose-300 break-words">Request failed: {error}</p>}
+    <div role="status" aria-live="polite" aria-atomic="true" aria-busy={pending} className="space-y-3">
+      {pending && <p className="text-sm text-cyan-300">Waiting for {mode === 'demo' ? 'the local example' : 'the API'}…</p>}
+      {children}
+    </div>
+  </div>;
+}
+
+function KnowledgePanel({ client, mode }: PanelProps) {
+  const [role, setRole] = useState<KnowledgeRole>('engineering');
+  const [query, setQuery] = useState('Engineering architecture microservices');
+  const action = useWorkbenchAction<KnowledgeResult>();
+  const changeQuery = (value: string) => { setQuery(value); action.reset(); };
+  return <div className="space-y-6">
+    <div>
+      <h2 className="text-xl font-bold text-white">Permission-aware knowledge retrieval</h2>
+      <p className="text-slate-400 text-sm mt-1">Try lexical retrieval and role filtering over a synthetic corpus. The selected role is a scenario input, not an authenticated identity or a production access-control guarantee.</p>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <form className="space-y-4 min-w-0" onSubmit={event => { event.preventDefault(); if (query.trim()) void action.run(signal => client.query(query.trim(), role, { signal })); }}>
+        <fieldset>
+          <legend className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Simulated role</legend>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">{(['engineering', 'hr', 'finance', 'guest'] as const).map(value => <label key={value} className={`flex items-center gap-2 px-2 py-2 rounded-lg text-xs capitalize border cursor-pointer ${role === value ? 'bg-cyan-500/20 border-cyan-500 text-cyan-200' : 'border-slate-700 text-slate-300'}`}>
+            <input type="radio" name="knowledge-role" value={value} checked={role === value} onChange={() => { setRole(value); action.reset(); }} className="accent-cyan-400" />{value}
+          </label>)}</div>
+        </fieldset>
+        <label htmlFor="knowledge-query" className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">Knowledge query</label>
+        <div className="flex flex-wrap gap-2">
+          <input id="knowledge-query" value={query} onChange={event => changeQuery(event.target.value)} className={`${input} flex-1 basis-48`} required maxLength={2000} />
+          <button type="submit" disabled={action.pending || !query.trim()} className={button}>{action.pending ? 'Searching…' : 'Search'}</button>
+        </div>
+        <div className="text-xs text-slate-400 flex flex-wrap gap-3"><span>Try a sample:</span>
+          <button type="button" onClick={() => changeQuery('Executive compensation bonus')} className={`underline hover:text-cyan-300 ${focus}`}>Executive compensation</button>
+          <button type="button" onClick={() => changeQuery('Engineering architecture')} className={`underline hover:text-cyan-300 ${focus}`}>Architecture</button>
+        </div>
+      </form>
+      <ResultBox title="Retrieval result" pending={action.pending} error={action.error} mode={mode}>
+        {action.result ? <>
+          <p className={`text-xs font-semibold ${action.result.allowed ? 'text-emerald-300' : 'text-rose-300'}`}>{action.result.allowed ? 'Role filter passed' : 'Blocked by sample role filter'}</p>
+          <p className="text-sm text-slate-200 break-words">{action.result.answer}</p>
+          <p className="text-xs text-slate-400">Heuristic grounding score: {(action.result.grounding_score * 100).toFixed(0)}% · Blocked matches: {action.result.blocked_count}</p>
+          {action.result.citations.map(citation => <p key={citation.doc_id} className="text-xs text-slate-300 border-t border-slate-800 pt-2">Sample citation: {citation.title} ({citation.department})</p>)}
+        </> : !action.pending && <p className="text-sm text-slate-400">Search the sample corpus to see a result.</p>}
+      </ResultBox>
+    </div>
+  </div>;
+}
+
+function IntakePanel({ client, mode }: PanelProps) {
+  const [content, setContent] = useState('Urgent: need refund of $450 on corporate billing');
+  const action = useWorkbenchAction<IntakeTicket>();
+  const ticket = action.result;
+  const approved = ticket?.status === 'resolved' && !ticket.requires_approval;
+  return <div className="space-y-6">
+    <div>
+      <h2 className="text-xl font-bold text-white">Intake-to-resolution workflow</h2>
+      <p className="text-slate-400 text-sm mt-1">Heuristic triage pauses selected sample requests for approval. Approval changes an in-memory ticket record; it does not send a message, issue a refund, or change an account.</p>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <form className="space-y-3" onSubmit={event => { event.preventDefault(); if (content.trim()) void action.run(signal => client.ingest(content.trim(), { signal })); }}>
+        <label htmlFor="ticket-content" className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Sample ticket content</label>
+        <textarea id="ticket-content" value={content} disabled={action.pending} onChange={event => { setContent(event.target.value); action.reset(); }} rows={4} maxLength={5000} required className={input} />
+        <button type="submit" disabled={action.pending || !content.trim()} className={button}>{action.pending && !ticket ? 'Ingesting…' : 'Ingest Ticket'}</button>
+      </form>
+      <ResultBox title="Ticket state" pending={action.pending} error={action.error} mode={mode}>
+        {ticket ? <>
+          <div className="flex flex-wrap justify-between gap-2 text-xs"><span className="text-slate-300">Ticket: <strong className="text-white">{ticket.id}</strong></span><span className="text-amber-200 font-semibold">{ticket.status}</span></div>
+          <p className="text-xs text-slate-300">Step: {ticket.state_machine_step}</p>
+          <p className="text-sm text-slate-300">Suggested action: {ticket.suggested_action}</p>
+          {ticket.requires_approval && <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 space-y-3">
+            <p className="flex items-center gap-2 text-xs text-amber-200"><AlertTriangle size={16} aria-hidden="true" /> Sample approval required</p>
+            <button type="button" onClick={() => void action.run(signal => client.approve(ticket, { signal }), true)} disabled={action.pending || !ticket.approval_token} className={`${button} w-full bg-amber-400 hover:bg-amber-300`}>{action.pending ? 'Approving…' : 'Approve Sample Ticket'}</button>
+          </div>}
+          {approved && <p className="text-sm text-emerald-300 flex items-center gap-2"><CheckCircle size={16} aria-hidden="true" /> {mode === 'demo' ? 'Local demo' : 'API'} confirmed the ticket is resolved.</p>}
+        </> : !action.pending && <p className="text-sm text-slate-400">Ingest a sample ticket to inspect its state.</p>}
+      </ResultBox>
+    </div>
+  </div>;
+}
+
+function InvoicePanel({ client, mode }: PanelProps) {
+  const [discrepancy, setDiscrepancy] = useState(false);
+  const action = useWorkbenchAction<InvoiceReport>();
+  return <div className="space-y-6">
+    <div><h2 className="text-xl font-bold text-white">Document intelligence & validation</h2><p className="text-slate-400 text-sm mt-1">Audit the built-in synthetic invoice with deterministic arithmetic checks. This example does not extract an uploaded document or approve a real payment.</p></div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-4">
+        <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={discrepancy} onChange={event => { setDiscrepancy(event.target.checked); action.reset(); }} className="accent-cyan-400" /> Inject a sample $10 arithmetic discrepancy</label>
+        <button type="button" onClick={() => void action.run(signal => client.validate(discrepancy, { signal }))} disabled={action.pending} className={button}>{action.pending ? 'Auditing…' : 'Run Deterministic Audit'}</button>
+      </div>
+      <ResultBox title="Validation report" pending={action.pending} error={action.error} mode={mode}>
+        {action.result ? <>
+          <p className={`text-sm font-semibold ${action.result.is_valid ? 'text-emerald-300' : 'text-rose-300'}`}>{action.result.is_valid ? 'Sample arithmetic checks passed' : 'Sample validation failed'}</p>
+          <p className="text-xs text-slate-300">Invoice: {action.result.invoice_id} · Math delta: ${action.result.math_delta.toFixed(2)}</p>
+          <p className="text-sm text-slate-300">Recommendation only: {action.result.action_recommended}</p>
+          <ul className="text-xs text-rose-300 list-disc pl-4 space-y-1">{action.result.discrepancy_details.map((detail, index) => <li key={index}>{detail}</li>)}</ul>
+        </> : !action.pending && <p className="text-sm text-slate-400">Run the audit to inspect the sample invoice.</p>}
+      </ResultBox>
+    </div>
+  </div>;
+}
+
+function OnboardingPanel({ client, mode }: PanelProps) {
+  const action = useWorkbenchAction<OnboardingResult>();
+  return <div className="space-y-6">
+    <div><h2 className="text-xl font-bold text-white">Customer data onboarding</h2><p className="text-slate-400 text-sm mt-1">Map sample column names and identify invalid rows in the built-in five-row batch. No customer file is uploaded or written to a production database.</p></div>
+    <button type="button" onClick={() => void action.run(signal => client.onboard({ signal }))} disabled={action.pending} className={button}>{action.pending ? 'Processing…' : 'Process Sample CSV Batch'}</button>
+    <ResultBox title="Batch report" pending={action.pending} error={action.error} mode={mode}>
+      {action.result ? <>
+        <dl className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">{[
+          ['Total rows', action.result.report.total_rows], ['Accepted rows', action.result.report.accepted_rows],
+          ['Quarantined rows', action.result.report.quarantined_rows], ['Mapped schema', `${action.result.report.schema_match_pct}%`],
+        ].map(([label, value]) => <div key={label} className="p-3 bg-slate-900 rounded-lg text-slate-300"><dt>{label}</dt><dd className="font-bold text-white text-lg mt-1">{value}</dd></div>)}</dl>
+        <dl className="text-xs text-slate-300 space-y-1">{Object.entries(action.result.report.mapped_headers).map(([from, to]) => <div key={from} className="flex flex-wrap gap-2"><dt>{from}</dt><dd>→ {to}</dd></div>)}</dl>
+        <ul className="list-disc pl-4 text-xs text-rose-300 space-y-1">{action.result.rows.filter(row => !row.is_valid).map(row => <li key={row.row_number}>Row {row.row_number}: {row.quarantine_reason}</li>)}</ul>
+      </> : !action.pending && <p className="text-sm text-slate-400">Process the sample batch to see mappings and row-level issues.</p>}
+    </ResultBox>
+  </div>;
+}
+
+function OperationsPanel({ client, mode }: PanelProps) {
+  const action = useWorkbenchAction<IncidentResult>();
+  const rollback = useWorkbenchAction<RollbackResult>();
+  const incident = action.result?.status === 'remediation_executed' ? action.result.incident : null;
+  const rolledBack = rollback.result?.status === 'success' && rollback.result.incident_id === incident?.incident_id;
+  const pending = action.pending || rollback.pending;
+  return <div className="space-y-6">
+    <div><h2 className="text-xl font-bold text-white">Operations command center</h2><p className="text-slate-400 text-sm mt-1">Correlate synthetic alerts and update an in-memory incident record. Remediation and rollback are simulated state transitions; no infrastructure is changed.</p></div>
+    <button type="button" onClick={() => { rollback.reset(); void action.run(signal => client.correlate({ signal })); }} disabled={pending} className={button}>{action.pending ? 'Correlating…' : 'Run Sample Incident'}</button>
+    <ResultBox title="Incident state" pending={pending} error={action.error || rollback.error} mode={mode}>
+      {incident ? <>
+        <div className="flex flex-wrap justify-between gap-2 text-xs"><span className="text-rose-300 font-semibold">{incident.severity}: {incident.title}</span><span className="text-slate-300">ID: {incident.incident_id}</span></div>
+        <p className="text-sm text-slate-300">Sample root cause: {incident.probable_root_cause}</p>
+        <p className="text-sm text-slate-300">Simulated action description: {incident.remediation_action}</p>
+        <p className="text-xs text-slate-300">Record state: {rolledBack ? rollback.result?.incident.state : incident.state}</p>
+        {!rolledBack && action.result?.status === 'remediation_executed' && action.result.rollback_ready && incident.can_rollback && incident.rollback_token && incident.state === 'remediated' && <button type="button" onClick={() => void rollback.run(signal => client.rollback(incident, { signal }))} disabled={pending} className={`flex items-center gap-2 px-3 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors motion-reduce:transition-none ${focus}`}><RotateCcw size={16} aria-hidden="true" /> {rollback.pending ? 'Rolling back…' : 'Roll Back Sample Incident'}</button>}
+        {rolledBack && <p className="text-sm text-emerald-300">{mode === 'demo' ? 'Local demo' : 'API'} confirmed the synthetic incident was rolled back.</p>}
+      </> : action.result?.status === 'no_incidents' ? <p className="text-sm text-slate-300">No incidents eligible for remediation were returned.</p> : !pending && <p className="text-sm text-slate-400">Run a sample incident to inspect its state and try rollback.</p>}
+    </ResultBox>
+  </div>;
+}
 
 export default function ArchetypesPage() {
-  const [activeTab, setActiveTab] = useState<'project1' | 'project2' | 'project3' | 'project4' | 'project5'>('project1');
-
-  // Project 1 State
-  const [p1Role, setP1Role] = useState<'engineering' | 'hr' | 'finance' | 'guest'>('engineering');
-  const [p1Query, setP1Query] = useState('Kubernetes architecture microservices');
-  const [p1Result, setP1Result] = useState<any>(null);
-
-  // Project 2 State
-  const [p2Content, setP2Content] = useState('Urgent: need refund of $450 on corporate billing');
-  const [p2Ticket, setP2Ticket] = useState<any>(null);
-  const [p2Approved, setP2Approved] = useState(false);
-
-  // Project 3 State
-  const [p3Discrepancy, setP3Discrepancy] = useState(false);
-  const [p3Report, setP3Report] = useState<any>(null);
-
-  // Project 4 State
-  const [p4Data, setP4Data] = useState<any>(null);
-
-  // Project 5 State
-  const [p5Incident, setP5Incident] = useState<any>(null);
-  const [p5RollbackDone, setP5RollbackDone] = useState(false);
-
-  // Handlers
-  const handleP1Run = async () => {
-    try {
-      const res = await fetch('/api/archetypes/project1/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: p1Query, user_role: p1Role }),
-      });
-      const data = await res.json();
-      setP1Result(data);
-    } catch {
-      // Fallback simulation for client preview
-      const isAllowed = p1Role !== 'finance' && p1Role !== 'guest' || !p1Query.toLowerCase().includes('executive');
-      setP1Result({
-        allowed: isAllowed,
-        answer: isAllowed
-          ? `Based on Engineering Architecture: Core services run on Kubernetes clusters in us-east-1.`
-          : `Access denied: Matching document 'Q3 Executive Compensation' requires elevated HR/Admin permissions.`,
-        grounding_score: isAllowed ? 0.98 : 0.0,
-        blocked_count: isAllowed ? 0 : 1,
-        citations: isAllowed ? [{ doc_id: 'DOC-002', title: 'Engineering Architecture', department: 'Engineering', confidentiality: 'internal' }] : [],
-      });
-    }
-  };
-
-  const handleP2Submit = async () => {
-    try {
-      const res = await fetch('/api/archetypes/project2/ticket', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customer: 'Acme Corp', content: p2Content }),
-      });
-      const data = await res.json();
-      setP2Ticket(data);
-      setP2Approved(false);
-    } catch {
-      const requiresApproval = p2Content.toLowerCase().includes('refund');
-      setP2Ticket({
-        id: 'TICK-9081',
-        customer: 'Acme Corp',
-        priority: 'high',
-        status: requiresApproval ? 'pending_approval' : 'resolving',
-        requires_approval: requiresApproval,
-        approval_token: requiresApproval ? 'APP-77B901C2' : null,
-        suggested_action: 'Escalate to billing manager for refund review.',
-      });
-      setP2Approved(false);
-    }
-  };
-
-  const handleP2Approve = () => {
-    setP2Approved(true);
-    if (p2Ticket) {
-      setP2Ticket({ ...p2Ticket, status: 'resolved', requires_approval: false });
-    }
-  };
-
-  const handleP3Validate = async () => {
-    try {
-      const res = await fetch('/api/archetypes/project3/validate-invoice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ simulate_discrepancy: p3Discrepancy }),
-      });
-      const data = await res.json();
-      setP3Report(data);
-    } catch {
-      setP3Report({
-        invoice_id: 'INV-2026-8891',
-        is_valid: !p3Discrepancy,
-        arithmetic_valid: !p3Discrepancy,
-        discrepancy_details: p3Discrepancy
-          ? ['Line items + tax ($3456.00) != total ($3466.00). Delta: $10.00']
-          : [],
-        action_recommended: p3Discrepancy
-          ? 'MANUAL_AUDIT_REQUIRED: Mathematical discrepancies detected.'
-          : 'AUTO_APPROVE: All arithmetic and business constraints verified.',
-      });
-    }
-  };
-
-  const handleP4Run = async () => {
-    try {
-      const res = await fetch('/api/archetypes/project4/onboard-data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: 'client_messy_export.csv' }),
-      });
-      const data = await res.json();
-      setP4Data(data);
-    } catch {
-      setP4Data({
-        report: {
-          total_rows: 5,
-          accepted_rows: 3,
-          quarantined_rows: 2,
-          schema_match_pct: 100.0,
-          mapped_headers: { Client_ID: 'customer_id', 'Full Name': 'full_name', 'Email Address': 'email', ARR: 'annual_spend' },
-        },
-      });
-    }
-  };
-
-  const handleP5Trigger = async () => {
-    try {
-      const res = await fetch('/api/archetypes/project5/correlate-and-remediate?simulate_incident=true', { method: 'POST' });
-      const data = await res.json();
-      setP5Incident(data.incident);
-      setP5RollbackDone(false);
-    } catch {
-      setP5Incident({
-        incident_id: 'INC-77102',
-        title: 'Cascading API Latency from Database Pool Exhaustion',
-        severity: 'critical',
-        probable_root_cause: 'PostgreSQL connection pool saturated during batch load.',
-        remediation_action: 'Automated read replica pool expansion (dry-run passed).',
-        state: 'remediated',
-        rollback_token: 'RBK-9902A1',
-      });
-      setP5RollbackDone(false);
-    }
-  };
-
-  return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
-          <span className="p-2 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl text-white shadow-lg shadow-cyan-500/20">
-            5
-          </span>
-          Production-Grade Enterprise Archetypes
-        </h1>
-        <p className="text-slate-400 mt-2 text-sm max-w-3xl">
-          Derived from Aishwarya Srinivasan&apos;s 2026 masterclass. AutoPilot FDE automatically discovers, classifies, generates, and deploys these 5 battle-tested enterprise architectures.
-        </p>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-4">
-        {[
-          { id: 'project1', label: '1. Knowledge RAG', icon: Shield },
-          { id: 'project2', label: '2. Intake-to-Resolution', icon: GitBranch },
-          { id: 'project3', label: '3. Document Intelligence', icon: FileText },
-          { id: 'project4', label: '4. Data Onboarding', icon: Database },
-          { id: 'project5', label: '5. Ops Command Center', icon: Radio },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const active = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                active
-                  ? 'bg-cyan-500 text-slate-950 font-semibold shadow-lg shadow-cyan-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              <Icon size={16} />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Content Area */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 backdrop-blur-xl">
-        {/* PROJECT 1 */}
-        {activeTab === 'project1' && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Shield className="text-cyan-400" size={20} />
-                Project 1: Permission-Aware Enterprise Knowledge System
-              </h2>
-              <p className="text-slate-400 text-sm mt-1">
-                Enforces strict RBAC/ABAC clearance before vector retrieval. Eliminates internal HR/Finance data leaks and verifies grounded answers with citation lineage.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-3">
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Your Simulated Role</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {(['engineering', 'hr', 'finance', 'guest'] as const).map((r) => (
-                    <button
-                      key={r}
-                      onClick={() => setP1Role(r)}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium capitalize border transition-all ${
-                        p1Role === r ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300' : 'border-slate-800 text-slate-400 hover:bg-slate-800'
-                      }`}
-                    >
-                      {r}
-                    </button>
-                  ))}
-                </div>
-
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block pt-2">Knowledge Query</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={p1Query}
-                    onChange={(e) => setP1Query(e.target.value)}
-                    className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
-                  />
-                  <button onClick={handleP1Run} className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold rounded-lg text-sm">
-                    Search
-                  </button>
-                </div>
-                <div className="text-xs text-slate-500 flex gap-2">
-                  <span>Quick Test:</span>
-                  <button onClick={() => setP1Query('Executive compensation bonus')} className="underline hover:text-cyan-400">
-                    Exec Compensation
-                  </button>
-                  <span>•</span>
-                  <button onClick={() => setP1Query('Kubernetes architecture')} className="underline hover:text-cyan-400">
-                    Infra Docs
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Retrieval & Grounding Output</h3>
-                {p1Result ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${p1Result.allowed ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}`}>
-                        {p1Result.allowed ? 'ACCESS GRANTED' : 'BLOCKED BY ACL GATE'}
-                      </span>
-                      <span className="text-xs text-slate-500">Grounding Score: {(p1Result.grounding_score * 100).toFixed(0)}%</span>
-                    </div>
-                    <p className="text-sm text-slate-200">{p1Result.answer}</p>
-                    {p1Result.citations && p1Result.citations.length > 0 && (
-                      <div className="border-t border-slate-800/80 pt-2 text-xs text-slate-400">
-                        <span className="font-semibold text-slate-300">Verified Citation:</span> {p1Result.citations[0].title} ({p1Result.citations[0].department})
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-xs text-slate-600 italic">Click Search to execute permission-aware retrieval.</p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PROJECT 2 */}
-        {activeTab === 'project2' && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <GitBranch className="text-cyan-400" size={20} />
-                Project 2: Intake-to-Resolution Orchestration Workflow
-              </h2>
-              <p className="text-slate-400 text-sm mt-1">
-                Stateful LangGraph execution engine. Low-risk queries auto-resolve straight through; high-risk transactions pause in an interrupt gate for cryptographic human approval.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-3">
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Incoming Ticket Payload</label>
-                <textarea
-                  value={p2Content}
-                  onChange={(e) => setP2Content(e.target.value)}
-                  rows={3}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
-                />
-                <button onClick={handleP2Submit} className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold rounded-lg text-sm">
-                  Ingest Ticket
-                </button>
-              </div>
-
-              <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">LangGraph State Machine</h3>
-                {p2Ticket ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400">Ticket: <strong className="text-white">{p2Ticket.id}</strong></span>
-                      <span className="px-2 py-0.5 rounded uppercase font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                        {p2Ticket.status}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-300"><strong>Action:</strong> {p2Ticket.suggested_action}</p>
-                    {p2Ticket.requires_approval && !p2Approved && (
-                      <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 space-y-2">
-                        <div className="flex items-center gap-1.5 text-xs text-amber-300 font-semibold">
-                          <AlertTriangle size={14} />
-                          Human-in-the-Loop Approval Required
-                        </div>
-                        <button onClick={handleP2Approve} className="w-full py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded text-xs">
-                          Approve Execution with Token ({p2Ticket.approval_token})
-                        </button>
-                      </div>
-                    )}
-                    {p2Approved && (
-                      <div className="text-xs text-emerald-400 font-semibold flex items-center gap-1.5">
-                        <CheckCircle size={14} /> State machine resumed: Action executed successfully!
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-xs text-slate-600 italic">Ingest a ticket to observe state machine execution.</p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PROJECT 3 */}
-        {activeTab === 'project3' && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <FileText className="text-cyan-400" size={20} />
-                Project 3: Dual-Stage Document Intelligence & Approval
-              </h2>
-              <p className="text-slate-400 text-sm mt-1">
-                Decoupled architecture: Stage 1 extracts candidate JSON via LLM; Stage 2 deterministically audits line-item multiplication, tax math, and reconciles totals.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="discrepancyToggle"
-                    checked={p3Discrepancy}
-                    onChange={(e) => setP3Discrepancy(e.target.checked)}
-                    className="accent-cyan-500 rounded"
-                  />
-                  <label htmlFor="discrepancyToggle" className="text-sm text-slate-300">
-                    Inject Simulated $10 Arithmetic Discrepancy
-                  </label>
-                </div>
-                <button onClick={handleP3Validate} className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold rounded-lg text-sm">
-                  Run Deterministic Audit
-                </button>
-              </div>
-
-              <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Stage 2 Validation Report</h3>
-                {p3Report ? (
-                  <div className="space-y-2">
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${p3Report.is_valid ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
-                      {p3Report.is_valid ? '100% MATHEMATICALLY VERIFIED' : 'ARITHMETIC ERROR CAUGHT'}
-                    </span>
-                    <p className="text-xs text-slate-300 mt-2">{p3Report.action_recommended}</p>
-                    {p3Report.discrepancy_details && p3Report.discrepancy_details.length > 0 && (
-                      <ul className="text-xs text-rose-400 list-disc pl-4 space-y-1">
-                        {p3Report.discrepancy_details.map((d: string, i: number) => (
-                          <li key={i}>{d}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-xs text-slate-600 italic">Click Run Deterministic Audit to verify extraction math.</p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PROJECT 4 */}
-        {activeTab === 'project4' && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Database className="text-cyan-400" size={20} />
-                Project 4: Customer Data Onboarding Pipeline
-              </h2>
-              <p className="text-slate-400 text-sm mt-1">
-                Fuzzy schema reconciliation maps messy customer headers (e.g. &apos;Client_ID&apos;, &apos;ARR&apos;) to canonical schemas while routing corrupt rows to a Quarantine DLQ.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <button onClick={handleP4Run} className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold rounded-lg text-sm">
-                Process Sample Dirty CSV Batch
-              </button>
-
-              {p4Data && (
-                <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
-                  <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                    <div className="p-2 bg-slate-900 rounded">Total: <strong className="text-white block text-sm">{p4Data.report.total_rows}</strong></div>
-                    <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded">Accepted: <strong className="block text-sm">{p4Data.report.accepted_rows}</strong></div>
-                    <div className="p-2 bg-rose-500/10 text-rose-400 rounded">Quarantined: <strong className="block text-sm">{p4Data.report.quarantined_rows}</strong></div>
-                    <div className="p-2 bg-cyan-500/10 text-cyan-400 rounded">Schema Match: <strong className="block text-sm">{p4Data.report.schema_match_pct}%</strong></div>
-                  </div>
-                  <div className="text-xs text-slate-400">
-                    <strong>Mapped Headers:</strong> {JSON.stringify(p4Data.report.mapped_headers)}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* PROJECT 5 */}
-        {activeTab === 'project5' && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Radio className="text-cyan-400" size={20} />
-                Project 5: Operations Command Center & Action Loop
-              </h2>
-              <p className="text-slate-400 text-sm mt-1">
-                Topological alert correlation identifies root causes during telemetry storms, executes automated canary actions, and provides guaranteed 1-click transactional rollback.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex gap-2">
-                <button onClick={handleP5Trigger} className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold rounded-lg text-sm">
-                  Correlate Telemetry & Remediate Incident
-                </button>
-              </div>
-
-              {p5Incident && (
-                <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-rose-400 font-bold uppercase">{p5Incident.severity} Incident: {p5Incident.title}</span>
-                    <span className="text-xs text-slate-400">ID: {p5Incident.incident_id}</span>
-                  </div>
-                  <p className="text-xs text-slate-300"><strong>Root Cause:</strong> {p5Incident.probable_root_cause}</p>
-                  <p className="text-xs text-emerald-400"><strong>Remediation Executed:</strong> {p5Incident.remediation_action}</p>
-                  {!p5RollbackDone ? (
-                    <button
-                      onClick={() => setP5RollbackDone(true)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 rounded text-xs font-semibold"
-                    >
-                      <RotateCcw size={14} /> 1-Click Rollback State ({p5Incident.rollback_token})
-                    </button>
-                  ) : (
-                    <div className="text-xs text-emerald-400 font-semibold">
-                      ✓ System state transactionally rolled back to pre-incident baseline.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+  const [activeTab, setActiveTab] = useState<Tab>('project1');
+  const [mode, setMode] = useState<WorkbenchMode>('connected');
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const client = useMemo(() => mode === 'demo' ? createDemoWorkbench() : connectedWorkbench, [mode]);
+  const Panel = { project1: KnowledgePanel, project2: IntakePanel, project3: InvoicePanel, project4: OnboardingPanel, project5: OperationsPanel }[activeTab];
+  return <div className="space-y-8">
+    <div>
+      <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3"><span aria-hidden="true" className="p-2 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl text-white shadow-lg shadow-cyan-500/20">5</span>Enterprise Archetype Workbench</h1>
+      <p className="text-slate-400 mt-2 text-sm max-w-3xl">Explore five reference workflows with synthetic inputs. Connected mode runs the repository’s backend implementations; local demo mode runs browser-only examples.</p>
     </div>
-  );
+    <section aria-label="Workbench execution mode" className="bg-slate-900/60 border border-slate-700 rounded-xl p-4 space-y-3">
+      <fieldset className="flex flex-wrap gap-4">
+        <legend className="text-sm font-semibold text-white mb-2">Execution mode</legend>
+        <label className="flex items-center gap-2 text-sm text-slate-200 cursor-pointer"><input type="radio" name="workbench-mode" checked={mode === 'connected'} onChange={() => setMode('connected')} className="accent-cyan-400" /> Connected API</label>
+        <label className="flex items-center gap-2 text-sm text-slate-200 cursor-pointer"><input type="radio" name="workbench-mode" checked={mode === 'demo'} onChange={() => setMode('demo')} className="accent-cyan-400" /> Synthetic demo (local)</label>
+      </fieldset>
+      <p role="status" className={`text-sm ${mode === 'demo' ? 'text-amber-200' : 'text-cyan-200'}`}>{mode === 'demo' ? 'Synthetic demo selected. No API requests are made; records exist only in this browser session.' : 'Connected API selected. Results appear only after a successful API response. Backend examples use synthetic data and in-memory state.'}</p>
+      <p className="text-xs text-slate-400">Use sample content only. Switching tabs or modes clears the displayed result. Requests already sent may still finish on the server. API failures never switch you to demo mode.</p>
+    </section>
+    <div role="tablist" aria-label="Enterprise archetypes" className="flex flex-wrap gap-2 border-b border-slate-800 pb-4">{tabs.map((tab, index) => {
+      const Icon = tab.icon;
+      return <button key={tab.id} ref={element => { tabRefs.current[index] = element; }} id={`tab-${tab.id}`} type="button" role="tab" aria-selected={activeTab === tab.id} aria-controls={`panel-${tab.id}`} tabIndex={activeTab === tab.id ? 0 : -1} onClick={() => setActiveTab(tab.id)}
+        onKeyDown={event => {
+          const target = event.key === 'ArrowRight' ? (index + 1) % tabs.length : event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length : event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : -1;
+          if (target >= 0) { event.preventDefault(); setActiveTab(tabs[target].id); tabRefs.current[target]?.focus(); }
+        }}
+        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors motion-reduce:transition-none ${focus} ${activeTab === tab.id ? 'bg-cyan-500 text-slate-950 font-semibold shadow-lg shadow-cyan-500/20' : 'text-slate-300 hover:text-white hover:bg-slate-800/60'}`}><Icon size={16} aria-hidden="true" />{tab.label}</button>;
+    })}</div>
+    {tabs.map(tab => <div key={tab.id} id={`panel-${tab.id}`} role="tabpanel" aria-labelledby={`tab-${tab.id}`} hidden={activeTab !== tab.id} tabIndex={0} className={`bg-slate-900/60 border border-slate-800 rounded-2xl p-4 sm:p-6 backdrop-blur-xl ${focus}`}>{activeTab === tab.id && <Panel key={`${mode}-${activeTab}`} client={client} mode={mode} />}</div>)}
+  </div>;
 }

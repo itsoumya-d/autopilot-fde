@@ -1,9 +1,8 @@
-"""Project 2: Intake-to-Resolution Orchestration Workflow.
+"""Project 2: Synthetic Intake-to-Resolution Orchestration Workflow.
 
-Implements multi-turn stateful intake handling, automatic priority triage,
-and LangGraph-style Human-in-the-Loop (HITL) checkpoints. High-risk actions
-(refunds, permission changes, database writes) pause in an `interrupt()`
-gate until approved with a cryptographic token.
+Demonstrates deterministic priority triage and a token-gated human approval
+checkpoint in process-local memory. This is not a running LangGraph workflow;
+no refund, permission change, message, or database write is executed.
 """
 
 from __future__ import annotations
@@ -13,8 +12,12 @@ import uuid
 from ..models.schema import ChannelType, IntakeTicket
 
 
+class IntakeTransitionError(ValueError):
+    """The ticket is no longer at a human-approval checkpoint."""
+
+
 class IntakeOrchestrator:
-    """Stateful workflow orchestrator managing tickets from intake to verified resolution."""
+    """In-memory demo of intake transitions; no customer action is executed."""
 
     def __init__(self) -> None:
         self.tickets: dict[str, IntakeTicket] = {}
@@ -67,10 +70,13 @@ class IntakeOrchestrator:
         return ticket
 
     def approve_ticket(self, ticket_id: str, token: str, human_operator: str) -> IntakeTicket:
-        """Resumes the paused state machine upon valid human approval."""
+        """Advance a pending demo ticket once upon valid human approval."""
         ticket = self.tickets.get(ticket_id)
         if not ticket:
             raise KeyError(f"Ticket {ticket_id} not found")
+
+        if ticket.status != "pending_approval" or not ticket.requires_approval:
+            raise IntakeTransitionError("Ticket is not awaiting approval")
 
         if ticket.approval_token != token:
             raise ValueError("Invalid approval token")
@@ -78,6 +84,7 @@ class IntakeOrchestrator:
         ticket.status = "resolved"
         ticket.state_machine_step = "action_executed"
         ticket.requires_approval = False
+        ticket.approval_token = None
         ticket.suggested_action += f" (Approved by {human_operator})"
         return ticket
 

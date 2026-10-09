@@ -1,9 +1,8 @@
-"""Project 5: Operations Command Center with an Action Loop.
+"""Project 5: Synthetic Operations Command Center with an Action Loop.
 
-Closes the loop from passive monitoring to safe autonomous remediation:
-correlates incoming telemetry alert storms into distinct incidents, identifies
-the root cause, executes canary remediations, and provides guaranteed 1-click
-transactional rollback.
+Demonstrates alert correlation and guarded remediation/rollback transitions in
+process-local memory. Root causes and action descriptions are canned examples;
+no canary check, infrastructure change, or real transactional rollback occurs.
 """
 
 from __future__ import annotations
@@ -14,8 +13,12 @@ from typing import Any
 from ..models.schema import CorrelatedIncident, TelemetryAlert
 
 
+class IncidentTransitionError(ValueError):
+    """The incident is not in the state required for the requested transition."""
+
+
 class OperationsCommandCenter:
-    """Real-time operations command center with closed-loop incident remediation and rollbacks."""
+    """In-memory incident demo; remediation and rollback do not touch real services."""
 
     def __init__(self) -> None:
         self.alerts: list[TelemetryAlert] = []
@@ -43,9 +46,9 @@ class OperationsCommandCenter:
                 title="Cascading API Latency from Database Connection Pool Exhaustion",
                 severity="critical",
                 correlated_alerts=[a.id for a in self.alerts],
-                probable_root_cause="PostgreSQL max_connections threshold reached during peak batch ETL.",
-                canary_action="Scale read replica pool from 2 to 4 pods (dry-run passed).",
-                remediation_action="Execute automated connection pool expansion and throttle non-critical batch workers.",
+                probable_root_cause="Simulated hypothesis: PostgreSQL max_connections reached during peak batch ETL (not verified).",
+                canary_action="Example plan: scale read replica pool from 2 to 4 pods; no canary or dry-run performed.",
+                remediation_action="Simulate connection pool expansion and batch-worker throttling in memory; no infrastructure changed.",
                 can_rollback=True,
                 rollback_token=rollback_token,
                 state="ready_for_execution",
@@ -56,30 +59,39 @@ class OperationsCommandCenter:
         return list(self.incidents.values())
 
     def execute_remediation(self, incident_id: str) -> CorrelatedIncident:
-        """Executes the closed-loop remediation action for an incident."""
+        """Advance a ready incident's simulated remediation state in memory."""
         incident = self.incidents.get(incident_id)
         if not incident:
             raise KeyError(f"Incident {incident_id} not found")
+
+        if incident.state != "ready_for_execution":
+            raise IncidentTransitionError("Incident is not ready for remediation")
 
         incident.state = "remediated"
         return incident
 
     def rollback_action(self, incident_id: str, rollback_token: str, operator: str) -> dict[str, Any]:
-        """Executes 1-click transactional rollback reversing the remediation."""
+        """Record one simulated rollback of a previously remediated incident."""
         incident = self.incidents.get(incident_id)
         if not incident:
             raise KeyError(f"Incident {incident_id} not found")
+
+        if incident.state != "remediated" or not incident.can_rollback:
+            raise IncidentTransitionError("Incident is not eligible for rollback")
 
         if incident.rollback_token != rollback_token:
             raise ValueError("Invalid rollback token")
 
         incident.state = "rolled_back"
+        incident.can_rollback = False
+        incident.rollback_token = ""
         event = {
             "incident_id": incident_id,
             "rollback_token": rollback_token,
             "operator": operator,
             "status": "success",
-            "action": f"Reversed remediation for '{incident.title}' back to baseline state.",
+            "action": f"Simulated rollback for '{incident.title}'; no infrastructure changed.",
+            "incident": incident.model_dump(),
         }
         self.rollback_history.append(event)
         return event

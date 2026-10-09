@@ -1,336 +1,192 @@
-<div align="center">
+# AutoPilot FDE
 
-# 🚀 AutoPilot FDE 2.0
-### Autonomous Business Process Discovery, 5 Enterprise Archetypes, and Legal Model Distillation Studio
+A local-first prototype for exploring communication-derived workflows, reviewing automation candidates, and exercising human-approved operational actions.
 
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![Next.js 15.5](https://img.shields.io/badge/frontend-Next.js%2015.5-black.svg)](https://nextjs.org/)
-[![FastAPI](https://img.shields.io/badge/backend-FastAPI-009688.svg)](https://fastapi.tiangolo.com/)
+Built with **Next.js 15 / React 19 / TypeScript** and **FastAPI / Python / SQLite**. The default workspace contains synthetic messages, so the core demo needs no external accounts or model API keys.
+
+[Source](https://github.com/itsoumya-d/autopilot-fde) · [Quick start](#quick-start) · [Demo walkthrough](#demo-walkthrough) · [Verification](#verification) · [License](./LICENSE)
+
 [![CI](https://github.com/itsoumya-d/autopilot-fde/actions/workflows/ci.yml/badge.svg)](https://github.com/itsoumya-d/autopilot-fde/actions/workflows/ci.yml)
-[![HostShift Parity](https://img.shields.io/badge/HostShift-222%20assertions%20green-success.svg)](#-applied-counterpart-hostshift-cross-platform-ui)
-[![License: FSL-1.1-Apache-2.0](https://img.shields.io/badge/License-FSL--1.1--Apache--2.0-red.svg)](./LICENSE)
-[![Author](https://img.shields.io/badge/Author-Soumya%20Deb%20Nath-cyan.svg)](mailto:admin@otaitech.com)
 
-**AutoPilot FDE** is the first autonomous **Forward Deployed Engineer (FDE)** platform. It passively observes natural language enterprise communications (Slack, WhatsApp, Email, Call Transcripts), mines business processes without manual templates, computes a mathematically grounded **Automation Potential Score (APS)** using Graph Transition Entropy, runs pre-deployment **Monte Carlo simulations**, autonomously synthesizes **5 Production-Grade Enterprise Archetypes**, and provides a **100% Legally Compliant Model Distillation Studio** to train in-VPC open-source models for perpetual cost-free deployment.
+## The operator problem
 
-[Live Demo](#-quick-start) • [Enterprise Archetypes](#-5-production-grade-enterprise-archetypes) • [Distillation Studio](#-100-legally-compliant-model-distillation-studio) • [Architecture](#-system-architecture) • [Mathematical Model](#-mathematical-foundation) • [Verification](#-verification--system-audit)
+An operations lead needs to decide which repeated requests are worth automating, what evidence supports that decision, and where human review must remain. AutoPilot FDE models that loop:
 
----
+1. Normalize messages into a common schema while retaining source references.
+2. Extract activities and group them into candidate process traces.
+3. Inspect an Automation Potential Score (APS), eligible steps, and blocked actions.
+4. Create an approval-gated draft workflow or explore one of five focused workbench examples.
+5. Inspect the resulting state instead of treating a button click as evidence of success.
 
-</div>
+The scenarios are fictional. Scores, time savings, and cost estimates are model outputs, not measured customer outcomes. This repository does not establish autonomous production operation, regulatory compliance, or production-grade tenant isolation.
 
-## 📌 Executive Summary
-
-Traditional enterprise process mining (e.g., Celonis) requires structured database event logs from legacy ERP systems. Traditional RPA (e.g., UiPath) requires brittle, manual workflow definitions. Traditional AI agents (e.g., simple LangChain wrappers) suffer from hallucinated arithmetic, catastrophic data leakage across department silos, and runaway recurring API bills ($50,000–$250,000/month).
-
-**AutoPilot FDE closes the loop autonomously from messy natural language communication to verified production enterprise systems:**
-
-```
-   RAW STREAMS           DISCOVERY & MINING             APS SCORING                ARCHETYPE SYNTHESIS           DISTILLATION & DEPLOY
-┌────────────────┐      ┌────────────────────┐      ┌─────────────────┐      ┌───────────────────────────┐      ┌─────────────────────┐
-│ Slack Channels │ ───► │ Bayesian Extractor │ ───► │  Graph Entropy  │ ───► │ 5 Production Archetypes   │ ───► │ 100% Legal Distill  │
-│ WhatsApp Cloud │      │   & Process Miner  │      │   APS Engine    │      │ • Knowledge RAG (ACL)     │      │ • PII Scrubber      │
-│ Email / Calls  │      │ (8 Departments)    │      │ ($ ROI Model)   │      │ • Intake-to-Resolution   │      │ • Unsloth / Ollama  │
-│ Support Traces │      │ (Directed Graph G) │      │ 1,000 MC Runs   │      │ • Document Intel & Math   │      │ • vLLM in-VPC Serve │
-└────────────────┘      └────────────────────┘      └─────────────────┘      │ • Customer Data Onboard   │      │ • HostShift UI      │
-                                                                             │ • Ops Command Center      │      └─────────────────────┘
-                                                                             └───────────────────────────┘
-```
-
----
-
-## 🧠 FDE Domain Research & Market Analysis
-
-### 1. The Forward Deployed Engineer (FDE) Bottleneck
-The concept of the Forward Deployed Software Engineer (FDSE/FDE) was pioneered by **Palantir Technologies**, embedding elite systems engineers directly inside client operations (defense, intelligence, tier-1 finance, healthcare) to bridge product capabilities with enterprise reality. In 2025–2026, **AI Forward Deployed Engineering** has emerged as the highest-leverage role across OpenAI, Anthropic, Scale AI, and Palantir.
-
-However, human FDEs face structural enterprise obstacles:
-1. **Lengthy Client Discovery (3–6 Months)**: Conducting hundreds of stakeholder interviews to map undocumented tribal workflows.
-2. **Specification Drift**: What business executives state in discovery sessions diverges sharply from actual daily communications in Slack/WhatsApp.
-3. **Bespoke Glue Code Hell**: Manually rewriting RAG pipelines, data ingestion parsers, and custom triage workflows for every client.
-4. **The "Token Tax" Churn**: Enterprise CFOs reject recurring monthly frontier model API bills ($50k–$250k/month).
-5. **Security & Regulatory Red Lines**: GDPR, HIPAA, and EU AI Act (Article 10) strictly prohibit sending customer PII to cloud LLM APIs.
-
-### 2. Competitive Landscape: How AutoPilot FDE Dominates
-
-| Capability | Celonis / Process Mining | UiPath / Legacy RPA | LangChain / CrewAI Wrappers | Human FDE Team | AutoPilot FDE 2.0 |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **Data Ingestion** | ERP database logs only | Screen scraping & clicks | Prompt text only | Manual interviews | **Natural chat & emails** |
-| **Workflow Discovery** | Statistical transitions | Manual recording | None (manual code) | Manual workflow mapping | **Autonomous Bayesian mining** |
-| **Viability Scoring** | None (pure analytics) | None | None | Subjective guesswork | **Shannon Graph Entropy (APS)** |
-| **Verification Gate** | None | Execution logs | None (probabilistic) | Manual staging tests | **1,000-run Monte Carlo** |
-| **Permission Controls** | Database IAM | OS credentials | Prompt injection risk | Hardcoded policies | **Multi-tenant RBAC/ABAC ACLs** |
-| **Arithmetic Integrity**| N/A | Deterministic scripts | Corrupted by hallucinations | Unit tests | **Decoupled Pydantic verification** |
-| **Model Distillation** | N/A | N/A | Vendor lock-in | Costly ML consultants | **100% Legal in-VPC Studio** |
-| **Time to Deployment** | 4–9 Months | 2–4 Months | 2–6 Weeks | 3–6 Months | **Hours (Continuous)** |
-
----
-
-## 🏗️ System Architecture
+## Architecture
 
 ```mermaid
-graph TD
-    subgraph "1. Ingestion Layer (Read-Only Observer)"
-        S[Slack Bolt SDK] --> ING[Unified Ingestion Pipeline]
-        W[WhatsApp Cloud API] --> ING
-        E[Email / IMAP Connector] --> ING
-        ING --> DB[(Async SQLite Repository)]
-    end
-
-    subgraph "2. Discovery & Mathematical Scoring"
-        DB --> EXT[Bayesian Activity Extractor]
-        EXT --> MINER[Temporal Process Miner]
-        MINER --> GRAPH[Directed Workflow Graph]
-        MINER --> ENTROPY[Shannon Transition Entropy H_trans]
-        MINER --> ACTORS[Actor Dispersion Metric]
-        GRAPH & ENTROPY & ACTORS --> APS[APS Opportunity Engine]
-        APS --> SIM[1,000-Run Monte Carlo Simulator]
-    end
-
-    subgraph "3. Autonomous Archetype Synthesis (discovery/synthesizer.py)"
-        SIM --> SYNTH[Autonomous Classifier & Synthesizer]
-        SYNTH --> P1[Archetype 1: Knowledge RAG + ACL]
-        SYNTH --> P2[Archetype 2: Intake-to-Resolution]
-        SYNTH --> P3[Archetype 3: Document Intel & Arithmetic]
-        SYNTH --> P4[Archetype 4: Data Onboarding Pipeline]
-        SYNTH --> P5[Archetype 5: Ops Command Center]
-    end
-
-    subgraph "4. Legal Model Distillation Studio (distillation/)"
-        P1 & P2 & P3 & P4 & P5 --> AUDIT[Golden Production Traces]
-        AUDIT --> PII[Zero-Leakage PII Scrubber]
-        PII --> ATTEST[EU AI Act Legal Attestation Gate]
-        ATTEST --> TRAIN[Recipe Generator: Unsloth / Ollama / vLLM]
-        TRAIN --> LOCAL[In-VPC Sovereign Open Model]
-    end
-
-    subgraph "5. Multi-Host Presentation Layer"
-        LOCAL --> HS[HostShift Generative UI Benchmark]
-        HS --> WEB[Web React / Next.js]
-        HS --> IOS[iOS SwiftUI]
-        HS --> AND[Android Compose]
-        HS --> TERM[Terminal Textual]
-    end
+flowchart LR
+    F[Synthetic message fixtures] --> I[Normalized messages]
+    C[Optional Slack / IMAP / WhatsApp intake] --> I
+    I --> DB[(SQLite)]
+    DB --> D[Rule-based discovery and process graphs]
+    D --> S[APS scoring and Monte Carlo simulation]
+    S --> G[Approval-gated agent records and generated code]
+    DB --> E[Dataset and recipe export]
+    API[FastAPI REST and MCP] --> DB
+    API --> W[In-memory archetype workbenches]
+    UI[Next.js dashboard] --> API
 ```
 
----
+- **Discovery:** deterministic activity extraction and trace mining in [`backend/discovery/`](backend/discovery/). Optional LLM enrichment is additive; it is disabled by default.
+- **Scoring:** [`backend/scoring/`](backend/scoring/) combines volume, duration, repeatability, step feasibility, graph complexity, and evidence heuristics. The raw APS is `100 × value × feasibility × evidence`, clamped to the implementation's score range. These weights and simulation assumptions need calibration before real operational use.
+- **Persistence:** [`backend/database.py`](backend/database.py) stores channels, messages, process graphs, scores, and agent records in `backend/autopilot.db`. Intake tickets, operational incidents, rollback history, and distillation job metadata are process-local memory; restarting the API clears them.
+- **Actions:** [`backend/deployment/`](backend/deployment/) generates LangGraph code and provides risk-tiered adapters. Creating or approving an agent record does not launch a hosted worker.
+- **Interface:** [`frontend/src/lib/api.ts`](frontend/src/lib/api.ts) is the configured REST client. The archetype workbench has a separate, explicitly selected synthetic browser preview. Distillation uses the backend and requires opt-in before generating fallback sample rows. Failed API requests remain errors.
 
-## 🎯 5 Production-Grade Enterprise Archetypes
+### Five workbench examples
 
-AutoPilot FDE automatically discovers, classifies, synthesizes, and deploys the **5 fundamental enterprise architectures** identified in Aishwarya Srinivasan's 2026 masterclass:
+| Workbench | Implemented behavior | Boundary |
+| --- | --- | --- |
+| Knowledge search | Role-filtered lexical matching over a small fixture corpus; returns source citations | The role is supplied by the caller. This is an access-filter demonstration, not authenticated authorization, vector retrieval, or an LLM answer service. |
+| Intake-to-resolution | Keyword triage, a pending-approval state, token-checked approval, and observable ticket state | Approval changes a local ticket. It does not issue a refund, delete an account, or send a customer message. |
+| Document validation | Checks line-item arithmetic, subtotal, tax, and total against a structured invoice | The default invoice is a fixture. Raw-text parsing is simulated; there is no connected OCR service. |
+| Data onboarding | Regex-based header mapping and row validation with acceptance/quarantine reasons | Accepts structured rows; the example does not upload a CSV or write to a customer's system. |
+| Operations | Correlates example database/API alerts, records a simulated remediation, and supports a token-checked rollback | Remediation and rollback change in-memory incident state. No Kubernetes, database, cloud, or monitoring system is modified. |
 
-```
-┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                 5 PRODUCTION ENTERPRISE ARCHETYPES                                     │
-├────────────────────────────┬────────────────────────────┬──────────────────────────────────────────────┤
-│ Archetype                  │ Core Enterprise Failure     │ AutoPilot FDE Production Solution            │
-├────────────────────────────┼────────────────────────────┼──────────────────────────────────────────────┤
-│ 1. Permission-Aware RAG    │ Naive RAG leaks confidential│ Dense + BM25 Hybrid retrieval with           │
-│    (Knowledge Search)      │ HR/Comp data across silos. │ department & clearance ACL pre/post filters. │
-├────────────────────────────┼────────────────────────────┼──────────────────────────────────────────────┤
-│ 2. Intake-to-Resolution   │ Unstructured requests cause│ Stateful LangGraph triage state machine with │
-│    (Omnichannel Routing)   │ SLA breaches & errors.     │ token-gated HITL interrupt() for high risk.  │
-├────────────────────────────┼────────────────────────────┼──────────────────────────────────────────────┤
-│ 3. Document Intelligence   │ LLMs hallucinate invoice   │ Decoupled architecture: OCR extraction +     │
-│    (Financial Auditing)    │ totals and tax math.       │ deterministic Pydantic arithmetic validation.│
-├────────────────────────────┼────────────────────────────┼──────────────────────────────────────────────┤
-│ 4. Customer Data Onboard   │ Messy customer CSVs crash  │ Levenshtein fuzzy header reconciler +        │
-│    (Schema Migration)      │ production ETL pipelines.  │ type-safe Quarantine Dead-Letter Queue (DLQ).│
-├────────────────────────────┼────────────────────────────┼──────────────────────────────────────────────┤
-│ 5. Ops Command Center      │ Alert storms cause cascade │ Real-time alert correlation, canary-stage    │
-│    (System Observability)  │ downtime & panic.          │ automated mitigation, & 1-click rollback.    │
-└────────────────────────────┴────────────────────────────┴──────────────────────────────────────────────┘
-```
+Implementations live in [`backend/archetypes/`](backend/archetypes/); request and response contracts are exposed at [local API docs](http://127.0.0.1:8000/docs) after starting the backend.
 
-### Deep Dive: Archetype Implementations
+## Quick start
 
-#### 1. Permission-Aware Knowledge RAG (`backend/archetypes/project1_knowledge_rag.py`)
-- **Problem**: In standard enterprise search, an intern querying *"benefits packages"* might inadvertently retrieve executive severance agreements and unredacted payroll spreadsheets.
-- **Solution**: Implements multi-tenant Access Control List (ACL) filtering at both query pre-filter (denying unauthorized document indexes) and post-retrieval validation stages. Combines dense semantic cosine similarity with sparse BM25 keyword matching and calculates grounding confidence metrics.
-- **Interactive UI**: Test clearance levels (`guest`, `member`, `admin`, `executive`) live at `/archetypes`.
+Prerequisites: **Python 3.12+**, **Node.js 22**, and npm. Run commands from the repository root unless noted. The commands below keep both servers on loopback; use synthetic data only.
 
-#### 2. Stateful Intake-to-Resolution (`backend/archetypes/project2_intake_resolution.py`)
-- **Problem**: Customer service bots either operate as dumb keyword routers or hallucinate dangerous refunds and unauthorized account changes.
-- **Solution**: Multi-channel intake (Slack, Email, WhatsApp) with automated sentiment and urgency scoring. Evaluates financial thresholds: any high-impact mutation (e.g. refunds > $100, data deletion) triggers a LangGraph `interrupt()` requiring a cryptographically signed approval token.
-
-#### 3. Document Intelligence & Arithmetic Validation (`backend/archetypes/project3_document_intel.py`)
-- **Problem**: 72% of LLM-based OCR extractors hallucinate calculated figures or accept internally inconsistent invoices where subtotal + tax does not equal the final balance.
-- **Solution**: Enforces a decoupled architecture. The LLM acts solely as an entity extractor; a deterministic Pydantic validator verifies:
-  $$\sum_{i=1}^n \text{LineItem}_i.\text{amount} + \text{Tax} = \text{Total Amount}$$
-  Discrepancies automatically flag the document for human accounting review.
-
-#### 4. Customer Data Onboarding Pipeline (`backend/archetypes/project4_data_onboarding.py`)
-- **Problem**: When onboarding new enterprise clients, CSV files arrive with chaotic column names (`CustID`, `Account_No`, `ARR`, `Rev_Annual`, `Created_On`).
-- **Solution**: Levenshtein-distance fuzzy schema reconciliation maps arbitrary headers to canonical enterprise schemas (`customer_id`, `annual_recurring_revenue`, `signup_date`). Corrupt rows (invalid dates, negative ARR) are routed to a Quarantine Dead-Letter Queue (DLQ) with prescriptive remediation suggestions.
-
-#### 5. Ops & Systems Command Center (`backend/archetypes/project5_operations_cmd.py`)
-- **Problem**: Cascading microservice alerts flood on-call engineers with noise, obscuring the true root cause and delaying remediation.
-- **Solution**: Ingests telemetry streams, deduplicates alerts across services (`api-gateway`, `auth-service`, `postgres-db`), identifies root causes, and executes safe canary remediations (e.g. restart pod, scale deployment, flush Redis). If post-mitigation health checks fail, it executes an immediate 1-click transactional rollback.
-
----
-
-## ⚖️ 100% Legally Compliant Model Distillation Studio
-
-Enterprise leaders want to escape the recurring "Token Tax" of frontier APIs ($50,000–$250,000/year) by fine-tuning compact open-source models (Qwen 2.5 7B, Llama 3.1 8B, Mistral 7B) for in-VPC deployment. However, enterprise legal teams fear ToS violations and regulatory fines.
-
-AutoPilot FDE provides the industry's first **100% legally and regulatory compliant Distillation Studio**:
-
-```
- ┌─────────────────┐       ┌────────────────────────┐       ┌────────────────────────┐       ┌─────────────────┐
- │ Frontier Model  │ ────► │  Automated GDPR / EU   │ ────► │ Mandatory Legal Check  │ ────► │ In-VPC Deploy   │
- │ GPT-4o / Claude │       │  AI Act PII Scrubber   │       │ Attestation Gate       │       │ Unsloth / Ollama│
- │ (Audited Traces)│       │  (Zero-Leakage Mask)   │       │ (ToS 2(c)(iii) Exempt) │       │ vLLM Hosting    │
- └─────────────────┘       └────────────────────────┘       └────────────────────────┘       └─────────────────┘
-```
-
-### The 4 Pillars of Legal & Regulatory Compliance
-
-1. **OpenAI Terms of Service (Section 2(c)(iii))**:
-   - *Clause*: Prohibits using model outputs to train competing general foundation models.
-   - *Compliance Guarantee*: AutoPilot FDE distills strictly for **internal enterprise utility automation** (custom routing, document parsing, triage state machines). This qualifies under the non-competing internal enterprise utility exemption. Furthermore, the Studio natively supports the official OpenAI Model Distillation API (`openai.fine_tuning.jobs.create`).
-2. **Anthropic Terms of Service**:
-   - Claude 3.5 Sonnet is deployed exclusively as an **LLM-as-a-Judge and Active Data Curator** filtering and ranking proprietary customer records, rather than emitting uncurated synthetic text.
-3. **Permissive Open-Weight Foundation Models**:
-   - Native integration with **DeepSeek-R1** (permissive MIT license) and **Meta Llama 3.1 405B** (Community License), explicitly authorizing commercial derivative distillation.
-4. **GDPR & EU AI Act (Article 10 Data Governance)**:
-   - Built-in zero-leakage **PII Scrubber** ([`backend/distillation/pii_scrubber.py`](backend/distillation/pii_scrubber.py)) automatically strips Emails, Phone Numbers, Social Security Numbers, Credit Cards, IP Addresses, and API/JWT Keys before datasets are compiled.
-   - Requires explicit human legal attestation (`attestation_accepted=True`) before generating training artifacts.
-
-### 1-Click Distillation Recipes Generated
-- **`train_unsloth.py`**: Fast 4-bit LoRA/QLoRA fine-tuning script with high memory efficiency.
-- **`Modelfile`**: Ready-to-run Ollama configuration for local, air-gapped workstations.
-- **`serve_vllm.sh`**: Production Docker launch script for multi-GPU vLLM inference inside client VPCs.
-- **Interactive ROI Calculator**: Live cost comparison modeling annual token volume vs. GPU hardware costs (available in the dashboard at `/distillation`).
-
----
-
-## 🔬 Mathematical Foundation
-
-### 1. Graph Shannon Transition Entropy
-For a discovered workflow graph $G = (V, E)$, decision branching complexity is formalized as:
-
-$$H_{\text{trans}}(p) = -\sum_{u \in V} \sum_{v \in \text{Adj}(u)} P(u \to v) \log_2 P(u \to v)$$
-
-* **Low Entropy ($H_{\text{trans}} \to 0$)**: Highly deterministic sequence $\to$ High straight-through automation suitability.
-* **High Entropy ($H_{\text{trans}} \gg 1$)**: High decision branching $\to$ Requires human oversight and checkpoints.
-
-### 2. Composite Automation Potential Score (APS)
-The composite opportunity score $\text{APS}(p) \in [0, 100]$ combines Value, Feasibility, and Evidence Confidence:
-
-$$\text{APS}(p) = 100 \cdot \text{Value}(p) \cdot \text{Feasibility}(p) \cdot \text{Evidence}(p)$$
-
-$$\text{Value}(p) = 0.45 \cdot V_{\text{norm}}(p) + 0.35 \cdot D_{\text{norm}}(p) + 0.20 \cdot R(p)$$
-
-$$\text{Feasibility}(p) = 0.50 \cdot \bar{F}_{\text{step}}(p) + 0.30 \cdot \text{DataAvail}(p) + 0.20 \cdot (1 - C(p))$$
-
-$$\text{Complexity } C(p) = 0.35 \cdot \frac{H_{\text{trans}}(p)}{H_{\max}} + 0.35 \cdot \frac{|\text{Actors}(p)| - 1}{|V(p)|} + 0.30 \cdot \frac{|V_{\text{critical}}(p)|}{|V(p)|}$$
-
----
-
-## 📊 Benchmark Evaluation (8 Enterprise Departments)
-
-> [!NOTE]
-> **Methodology & Simulation Disclosure:** All annual dollar ROI projections, straight-through processing (STR) rates, and token consumption statistics are stochastic simulations generated by the Monte Carlo evaluation engine (`scripts/test_pipeline_v2.py`) over benchmark communication datasets. They model prospective automation returns and transition bounds rather than audited post-deployment customer financials.
-
-Empirical results across 158 multi-turn interactions evaluated by `scripts/test_pipeline_v2.py`:
-
-| Discovered Process | Steps | Traces | APS Score | Safety Mode | Simulated STR (%) | Est. Annual Net ROI |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Enterprise Deal Desk** | 4 | 9 | **74.4** | ASSISTED | 68.4% | **$36,499.44** |
-| **Support Escalation Resolution** | 5 | 5 | **69.0** | ASSISTED | 62.1% | **$31,587.48** |
-| **Employee Onboarding & IT** | 4 | 4 | **65.1** | ASSISTED | 56.2% | **$44,925.96** |
-| **Customer Success Renewal** | 4 | 4 | **63.2** | ASSISTED | 42.0% | **$29,481.96** |
-| **Legal Contract NDA Review** | 4 | 4 | **63.2** | ASSISTED | 51.5% | **$56,157.96** |
-| **Invoice Exception Reconciliation** | 4 | 5 | **59.1** | DRAFT_ONLY | 28.4% | **$19,341.48** |
-| **DevOps Incident Triage** | 5 | 5 | **58.3** | DRAFT_ONLY | 34.0% | **$14,037.48** |
-
-* **Total Projected Annual ROI across 7 workflows**: **$232,031.76**
-* **Safety violations**: **0** (blocked steps are structurally incapable of automatic execution).
-
----
-
-## 🤖 Connect Your Coding Agent (MCP Server)
-
-AutoPilot FDE ships a **Model Context Protocol (MCP)** server with dual transports:
-1. **stdio**: For local IDE integration (Claude Desktop, Claude Code, Cursor, Windsurf, Codex CLI).
-2. **Streamable-HTTP at `POST /mcp`**: Hosted directly on the dashboard API with discovery at `/.well-known/mcp`.
+### 1. Start the API
 
 ```bash
-python -m backend.mcp_server   # stdio: newline-delimited JSON-RPC
-uvicorn backend.main:app       # http: POST /mcp
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r backend/requirements.txt
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
 
-### Risk-Tiered Safe Tool Adapters
-Generated LangGraph workflows dispatch through [`backend/deployment/tool_adapters.py`](backend/deployment/tool_adapters.py):
+On first startup, an empty workspace receives the fixtures from [`backend/demo_data.py`](backend/demo_data.py), then discovery runs if no processes exist. Startup logs warn when the optional mutation API key is unset; this is expected for the isolated local demo.
 
-| Tier | Adapter | Behavior |
-|---|---|---|
-| `READ_ONLY` | Context Formatter | Deterministic summary, zero side effects. |
-| `DRAFT_ONLY` | Draft Writer | Local review artifact under `runs/drafts/`; never sends. |
-| `INTERNAL_ACTION` | Webhook Relay | POSTs to operator-configured internal URL. |
-| `EXTERNAL_WRITE` | **Structural Gate** | Raises `StructuralGateError`; human must authorize. |
-| `CRITICAL_TRANSACTION` | **Structural Gate** | Raises `StructuralGateError`; never automatable. |
+### 2. Start the dashboard in a second terminal
 
----
-
-## ⚡ Quick Start
-
-### One-Step Bootstrap
 ```bash
-bash install.sh --run    # Sets up venv, installs deps, runs tests, builds UI, boots API :8000 + UI :3000
-```
-
-### Manual Setup
-```bash
-# 1. Backend
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r backend/requirements.txt
-uvicorn backend.main:app --reload --port 8000
-
-# 2. Frontend
 cd frontend
-npm install
-npm run dev
-# Open http://localhost:3000 (Hub, /archetypes, /distillation)
+npm ci
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000/api npm run dev -- --hostname 127.0.0.1
 ```
 
----
+Open [the dashboard](http://127.0.0.1:3000), [archetypes](http://127.0.0.1:3000/archetypes), or [distillation](http://127.0.0.1:3000/distillation). `NEXT_PUBLIC_API_URL` includes `/api` and must be reachable by the **browser**, not only by the Next.js server. Set it before building if using `npm run build`.
 
-## 🧪 Verification & System Audit
-
-The [CI workflow](.github/workflows/ci.yml) runs backend lint and the test suite on Python 3.12, 3.13, and 3.14, plus frontend lint, unit tests, type checking, and a production build on Node.js 22. The backend coverage gate remains 100%. Check the [latest workflow run](https://github.com/itsoumya-d/autopilot-fde/actions/workflows/ci.yml) for commit-specific results.
+### 3. Check the backend independently
 
 ```bash
-# 1. Backend lint and 100% coverage suite
+curl --fail http://127.0.0.1:8000/health
+curl --fail http://127.0.0.1:8000/api/dashboard/
+curl --fail http://127.0.0.1:8000/api/processes/
+```
+
+`/health` returns `{"status":"ok","mode":"safe-demo"}`. This confirms API availability, not external connector health. On a fresh database, the other endpoints expose the seeded discovery results.
+
+The manual route above is the reference setup. `install.sh`, Docker files, and deployment notes also exist, but they are not a substitute for checking their configuration and running the verification commands below. In particular, do not assume a container's internal hostname is usable as a browser API URL.
+
+## Demo walkthrough
+
+Use this as a short, reproducible review of the prototype rather than a production deployment demonstration.
+
+1. **Follow the evidence.** Open Processes, inspect a discovered workflow and its source-linked activities, then compare its score with eligible and blocked steps. Treat projected savings as assumptions to inspect.
+2. **Resolve a local request.** In the intake workbench at `/archetypes`, submit a fictional refund request. Inspect the pending approval, approve it, and verify the ticket's resolved state. A repeated approval should be rejected or unavailable, not recorded as another action.
+3. **Reverse a simulated action.** In the operations workbench, run the synthetic incident example. Inspect the returned incident, invoke rollback, and verify its rolled-back state. No external infrastructure is involved.
+4. **Exercise invalid input.** Run the invoice discrepancy example and the sample customer-data batch. Review the arithmetic failures and quarantine reasons, rather than interpreting an HTTP 200 as business success.
+5. **Inspect generated artifacts.** At `/distillation`, preview pattern-based redaction, review the attestations, and generate dataset/recipe files. Inspect the returned paths and counts. A completed job here means artifact generation finished, not model training.
+6. **Try a failure drill.** Stop the API and attempt a workbench request. Expect a visible failure and a retry path, without a fabricated success. Restart the API and retry. The archetype browser preview is a separate explicit choice, and its results are not backend execution evidence.
+
+The backend demo and archetype browser synthetic preview are different: the former runs Python against local fixture data; the latter demonstrates UI states without claiming an API action occurred. Existing overview/showcase pages may also contain illustrative or fallback data; confirm important results through API responses and tests.
+
+## Configuration and integration boundaries
+
+[`.env.example`](.env.example) is a variable reference. Python reads the process environment; merely creating a root `.env` file does not load it into the manual `uvicorn` command. Export the variables you need before starting the backend. For Next.js, use the command above or `frontend/.env.local`.
+
+| Configuration | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_API_URL` | Browser-visible API base, defaulting to `http://127.0.0.1:8000/api` |
+| `AUTOPILOT_API_KEY` | Optional `X-API-Key` check on guarded REST mutations; unset means those routes are open |
+| `AUTOPILOT_CORS_ORIGINS` | Comma-separated allowed browser origins; defaults to localhost/127.0.0.1 on port 3000 |
+| `SLACK_BOT_TOKEN` | Enables the explicit Slack sync endpoint with appropriate read scopes |
+| `IMAP_HOST`, `IMAP_USER`, `IMAP_PASSWORD`, `IMAP_FOLDER` | Enables explicit read-only email sync; folder defaults to `INBOX` |
+| `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET` | Webhook subscription verification and payload signature checks |
+| `AUTOPILOT_REQUIRE_SIGNED_WEBHOOKS=1` | Refuses WhatsApp payloads if signature verification is not configured |
+| `AUTOPILOT_LLM_ENHANCE=1`, `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL` | Optional OpenAI-compatible discovery enrichment |
+| `AUTOPILOT_MCP_ALLOW_MUTATIONS=1` | Enables mutating MCP tools; leave disabled for inspection |
+
+Slack sync, IMAP ingestion, and WhatsApp webhooks have connector code, but the default demo neither connects accounts nor verifies live service behavior. Missing connector credentials are configuration errors, not a reason to substitute successful imports. Optional LLM enrichment has its own deterministic fallback; that does not establish that an external model was called successfully.
+
+### Security and action scope
+
+Keep this prototype local until you have addressed the deployment's trust boundaries:
+
+- The REST API key is not a user identity or tenant authorization system and does not protect every endpoint. Read routes and MCP need their own access review; CORS is not authentication.
+- Workbench roles, operator names, and approval tokens demonstrate workflow checks. They do not establish independently authenticated human identity or production separation of duties.
+- Draft/assisted agent creation requires approval; fully autonomous deployment is rejected by the REST API. Generated code still needs an execution environment and reviewed integrations.
+- Reference adapters format context, write local drafts, or POST to an operator-configured internal webhook. The webhook adapter **can have real external effects** when configured and executed. External-write and critical-transaction tiers are structurally blocked by these adapters.
+- Data retention, encrypted storage, account authorization, tenant isolation, recovery, rate controls, and audit integrity need deployment-specific review. Pattern-based redaction is not a guarantee that personal data or secrets have been removed.
+
+## Distillation: artifacts, not a trained model
+
+[`backend/distillation/`](backend/distillation/) builds JSONL examples from discovered activities and their source messages, applies regex-based redaction, and writes training/serving recipe templates under `runs/distillation/<job-id>/`. When no activities have matching source messages, `POST /api/distillation/jobs` returns HTTP 422 unless `allow_synthetic_samples` is explicitly enabled. That opt-in generates three fallback sample rows and returns `used_synthetic_samples: true`. A false value means rows came from workspace evidence; those messages can still be seeded synthetic fixtures, so it does not establish real customer provenance.
+
+The exported files include an Unsloth script, an Ollama Modelfile, and a vLLM shell recipe. The service does **not** call a teacher model to produce these examples, start GPU training, evaluate a trained student, or deploy a model. Teacher/student selections are recipe metadata, not proof of a provider integration. Templates require compatibility checks and an appropriate runtime before execution.
+
+Both usage attestations default to false on the job API and must be supplied as true to generate artifacts. They record operator choices. They do not confer data rights, override provider/model terms, or establish legal compliance. Review the applicable data permissions and terms before training or sharing a dataset. Cost comparisons use hard-coded assumptions and exclude a full accounting of engineering, training, hosting, and operations.
+
+## Verification
+
+The [CI definition](.github/workflows/ci.yml) runs backend lint and tests on Python 3.12, 3.13, and 3.14, plus frontend lint, unit tests, TypeScript checking, and a build on Node.js 22. The backend test command enforces **100% measured coverage**; this is a test-suite threshold, not a correctness or security guarantee.
+
+Run the same checks locally:
+
+```bash
+# From the repository root, with the virtual environment active
+python -m pip install pytest pytest-cov ruff
 ruff check backend/ tests/ scripts/
-PYTHONPATH=. pytest tests/ -v --cov=backend --cov-report=term-missing --cov-fail-under=100
+PYTHONPATH=. pytest tests/ --cov=backend --cov-report=term-missing --cov-fail-under=100
 
-# 2. Frontend Quality Gates (TypeScript + ESLint + Build + Tests)
+# Frontend, after npm ci
 cd frontend
-npm run lint && npx tsc --noEmit && npm run build && npm test
-
-# 3. HostShift Multi-Host Conformance (222 assertions across 5 hosts)
-bash ../scripts/run_tests.sh
+npm run lint
+npm run test
+npx tsc --noEmit
+npm run build
 ```
 
-| Verification Suite | Metrics | Status |
-| :--- | :--- | :---: |
-| **Backend Test Suite** | Python 3.12 / 3.13 / 3.14 matrix | 100% coverage required; see linked CI run |
-| **Frontend Static Build** | 14/14 static pages generated | **Zero Lint/Type Errors** |
-| **HostShift Conformance** | 222/222 assertions passed | **5/5 Hosts Green** |
-| **Model Distillation** | GDPR PII Masking, Unsloth, Ollama, vLLM | **Verified** |
-| **5 Archetypes Suite** | RAG, Intake, Document Intel, Onboarding, Ops | **Verified** |
+Useful test areas include API validation/security, discovery/scoring, agent lifecycle and audit behavior, connector handling, archetype state transitions, distillation output, and frontend request/state behavior. See [`tests/`](tests/) and the `*.test.ts(x)` files under [`frontend/src/`](frontend/src/).
 
----
+For a console walkthrough of fixture discovery, scoring, simulation, and code generation:
 
-## 🌐 Applied Counterpart: HostShift Cross-Platform UI
+```bash
+PYTHONPATH=. python scripts/test_pipeline_v2.py
+```
 
-AutoPilot FDE deploys agents that must live across diverse interfaces. Its sibling project in this repository, [**HostShift**](../README.md), measures whether agent-generated user interfaces survive across **Web, iOS (SwiftUI), Android (Compose), Flutter, and Terminal (Textual)** with automated state oracle grading.
+Its printed financial figures are simulation results, and its summary is not a separate integration certification. Consult [Actions](https://github.com/itsoumya-d/autopilot-fde/actions/workflows/ci.yml) for the result on the exact commit under review. A previous green commit does not validate later changes; unit tests and coverage do not replace live-connector checks or browser-level end-to-end testing.
 
----
+## MCP and repository map
 
-## 📄 License & Authorship
+Start the local stdio MCP server from the repository root:
 
-- **License**: Fair Source 1.1 with Apache 2.0 conversion ([LICENSE](./LICENSE)).
-- **Author**: Soumya Deb Nath ([admin@otaitech.com](mailto:admin@otaitech.com))
-- **Research Citation**: See [`paper/main.tex`](./paper/main.tex) for academic formalization.
+```bash
+python -m backend.mcp_server
+```
+
+The running FastAPI app also exposes JSON-RPC at `POST /mcp` and discovery at `/.well-known/mcp`. Read tools include dashboard summaries, process details, scores, simulations, channels, and agent records. Mutations are disabled unless explicitly enabled with `AUTOPILOT_MCP_ALLOW_MUTATIONS=1`. Use only with a trusted local client until transport authentication and deployment exposure have been reviewed.
+
+- [`backend/api/`](backend/api/): REST contracts and lifecycle operations
+- [`backend/models/schema.py`](backend/models/schema.py): typed domain models
+- [`backend/ingestion/`](backend/ingestion/): external-source adapters
+- [`backend/export/`](backend/export/) and [`scripts/`](scripts/): dataset, object-log, audit-chain, and agent-bundle exports
+- [`docs/FINE-TUNING.md`](docs/FINE-TUNING.md): additional model-training guidance; check dependencies and terms before use
+- [`ROADMAP.md`](ROADMAP.md): proposed direction, not a statement that every capability is implemented
+
+## License and authorship
+
+Created by **Soumya Deb Nath** ([admin@otaitech.com](mailto:admin@otaitech.com)). The repository's [LICENSE](./LICENSE) contains its **Functional Source License, Version 1.1, Apache 2.0 Change License** terms, commercial-use restrictions, conversion provisions, and attribution requirements. Those terms are unchanged by this documentation.

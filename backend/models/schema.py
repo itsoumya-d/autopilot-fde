@@ -289,6 +289,8 @@ class DistillationJob(BaseModel):
     quantization: str = "4bit"
     target_hardware: str = "vllm_or_ollama"
     generated_recipe_files: list[str] = Field(default_factory=list)
+    allow_synthetic_samples: bool = False
+    used_synthetic_samples: bool = False
 
 
 # ── The 5 FDE Archetype Models ─────────────────────────────────────────────
