@@ -14,9 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className="bg-[#0a0f1c] text-white flex h-screen overflow-hidden">
+      <body className="bg-[#0a0f1c] text-white flex h-dvh flex-col md:flex-row">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto p-8 relative">
+        <main className="relative min-h-0 min-w-0 flex-1 overflow-auto p-4 sm:p-6 lg:p-8 [overflow-wrap:anywhere]">
           {children}
         </main>
       </body>

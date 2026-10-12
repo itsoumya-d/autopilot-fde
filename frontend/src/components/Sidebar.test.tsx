@@ -24,6 +24,23 @@ describe('Sidebar navigation accessibility', () => {
     for (const label of labels) expect(screen.getByRole('link', { name: label })).toBeTruthy();
   });
 
+  it('keeps every destination in keyboard order in both navigation modes', async () => {
+    const user = userEvent.setup();
+    render(<Sidebar />);
+    const destinations = ['/', '/archetypes', '/distillation', '/social-deck', '/showcase', '/channels', '/processes', '/objects', '/scores', '/deploy', '/performance'];
+    const toggle = screen.getByRole('button', { name: 'Collapse sidebar' });
+    for (const collapsed of [false, true]) {
+      if (collapsed) await user.click(toggle);
+      toggle.focus();
+      for (const [index, label] of labels.entries()) {
+        await user.tab();
+        const link = screen.getByRole('link', { name: label });
+        expect(document.activeElement).toBe(link);
+        expect(link.getAttribute('href')).toBe(destinations[index]);
+      }
+    }
+  });
+
   it('identifies the current page in both expanded and collapsed navigation', async () => {
     render(<Sidebar />);
     expect(screen.getByRole('link', { name: 'Channels' }).getAttribute('aria-current')).toBe('page');

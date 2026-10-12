@@ -81,13 +81,14 @@ export default function Objects() {
             </div>
           </section>
 
-          <div className="grid gap-6 lg:grid-cols-[1.35fr_0.95fr]">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.35fr_0.95fr]">
             <section className="glass-card overflow-hidden rounded-2xl">
               <header className="border-b border-slate-800 p-5">
                 <h2 className="text-lg font-semibold">Objects</h2>
                 <p className="text-xs text-slate-500">Sorted by relationship count.</p>
               </header>
-              <table className="w-full text-left">
+              <div role="region" aria-label="Objects table" tabIndex={0} className="overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-400">
+              <table className="w-full min-w-[24rem] text-left">
                 <thead className="bg-slate-900/70 text-xs uppercase tracking-wider text-slate-500">
                   <tr>
                     <th className="p-4">Object</th>
@@ -129,6 +130,7 @@ export default function Objects() {
                   )}
                 </tbody>
               </table>
+              </div>
             </section>
 
             <aside id="object-trace" className="glass-card rounded-2xl p-6">

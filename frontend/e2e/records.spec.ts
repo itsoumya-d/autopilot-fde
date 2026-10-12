@@ -34,11 +34,11 @@ test('live pilot record lifecycle changes records without starting a worker', as
 test('deployment failed load requires explicit refresh before mutation', async ({ page }) => {
   await page.route(`${API}/agents/`, r => r.fulfill({ status: 503, json: { detail: 'Synthetic records outage' } }));
   await page.goto('/deploy');
-  await expect(page.getByRole('alert')).toContainText('Synthetic records outage');
+  await expect(page.getByRole('main').getByRole('alert')).toContainText('Synthetic records outage');
   await expect(page.getByRole('button', { name: 'Create draft pilot', exact: true })).toBeDisabled();
   await page.unroute(`${API}/agents/`);
   await page.getByRole('button', { name: 'Retry refresh', exact: true }).click();
-  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Create draft pilot', exact: true })).toBeEnabled();
 });
 

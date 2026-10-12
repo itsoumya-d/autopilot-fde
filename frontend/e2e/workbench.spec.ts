@@ -69,13 +69,13 @@ test('injected outage shows failure, keeps connected mode, and explicit retry su
   await openWorkbench(page);
   await page.route(`${prefix}/project2/ticket`, r => r.abort('failed'));
   await page.getByRole('button', { name: 'Ingest Ticket', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('Request failed:');
+  await expect(page.getByRole('main').getByRole('alert')).toContainText('Request failed:');
   await expect(page.getByRole('radio', { name: 'Connected API', exact: true })).toBeChecked();
   await expect(page.getByText('pending_approval', { exact: true })).toHaveCount(0);
   await page.unroute(`${prefix}/project2/ticket`);
   await page.getByRole('button', { name: 'Ingest Ticket', exact: true }).click();
   await expect(page.getByText('pending_approval', { exact: true })).toBeVisible();
-  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0);
 });
 
 test('delayed real response locks repeated submit and cannot repaint a dismissed panel', async ({ page }) => {
@@ -131,10 +131,10 @@ test('malformed response cannot become success and mode switching clears evidenc
   await openWorkbench(page);
   await page.route(`${prefix}/project2/ticket`, r => r.fulfill({ json: { status: 'resolved' } }));
   await page.getByRole('button', { name: 'Ingest Ticket', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('unexpected response');
+  await expect(page.getByRole('main').getByRole('alert')).toContainText('unexpected response');
   await expect(page.getByText(/confirmed the ticket is resolved/)).toHaveCount(0);
   await page.getByRole('radio', { name: 'Synthetic demo (local)', exact: true }).check();
-  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0);
   await expect(page.getByText('Ingest a sample ticket to inspect its state.', { exact: true })).toBeVisible();
   await page.getByRole('radio', { name: 'Connected API', exact: true }).check();
   await expect(page.getByText('Ingest a sample ticket to inspect its state.', { exact: true })).toBeVisible();

@@ -55,6 +55,20 @@ describe('Object Lens page', () => {
     expect(object.getAttribute('aria-pressed')).toBe('true');
   });
 
+  it('lets keyboard users focus the named table scroll area before its object controls', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(log), { status: 200 })));
+    const user = userEvent.setup();
+    render(<Objects />);
+    const cases = await screen.findByRole('button', { name: /^case\s*1$/ });
+    cases.focus();
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole('region', { name: 'Objects table' }));
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'vendor:acme' }));
+    await user.keyboard('{Enter}');
+    expect(await screen.findByText('Invoice received')).toBeDefined();
+  });
+
   it('exposes the active type filter', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(log), { status: 200 })));
     const user = userEvent.setup();

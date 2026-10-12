@@ -38,11 +38,20 @@ export async function openWorkbench(page: Page, tab = '2. Intake-to-Resolution')
 export async function noHorizontalOverflow(page: Page) {
   const dimensions = await page.evaluate(() => {
     const main = document.querySelector('main')!;
+    const bounds = main.getBoundingClientRect();
     return {
       page: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       main: main.scrollWidth - main.clientWidth,
+      // Bounded layout diagnostics for a genuine failure, without media uploads.
+      overflowing: Array.from(main.querySelectorAll('*')).filter(element => {
+        const rect = element.getBoundingClientRect();
+        return rect.width > 0 && (rect.right > bounds.right + 1 || rect.left < bounds.left - 1);
+      }).slice(0, 12).map(element => ({
+        tag: element.tagName, className: element.getAttribute('class'),
+        width: Math.round(element.getBoundingClientRect().width),
+      })),
     };
   });
   expect(dimensions.page, 'Document must fit the viewport').toBeLessThanOrEqual(1);
-  expect(dimensions.main, 'Main content must not require horizontal scrolling').toBeLessThanOrEqual(1);
+  expect(dimensions.main, `Main content must not require horizontal scrolling: ${JSON.stringify(dimensions)}`).toBeLessThanOrEqual(1);
 }

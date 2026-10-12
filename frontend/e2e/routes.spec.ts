@@ -189,10 +189,33 @@ test('social themes change locally and clipboard failure never claims success', 
   }));
   await page.goto('/social-deck');
   await page.getByRole('button', { name: 'Copy Post', exact: true }).click();
-  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.getByRole('main').getByRole('alert')).toBeVisible();
   await expect(page.getByText('Copied!', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: '2. AutoPilot FDE: 4-Panel Editorial' }).click();
   await expect(page.getByText(/AutoPilot/).first()).toBeVisible();
   await page.getByRole('button', { name: '3. 5-Slide Master Pitch Deck' }).click();
   await expect(page.getByRole('button', { name: /Copy.*(Tweet|Post)/i }).first()).toBeVisible();
+});
+
+test('mobile navigation and alternate showcase/social panels stay reachable', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await navigateReady(page, '/');
+  const performance = page.getByRole('navigation').getByRole('link', { name: 'Performance', exact: true });
+  await performance.scrollIntoViewIfNeeded();
+  await performance.click();
+  await expect(page.getByRole('heading', { name: 'Pilot performance', exact: true })).toBeVisible();
+  await noHorizontalOverflow(page);
+  await page.goto('/showcase');
+  await page.getByRole('button', { name: 'LangGraph Code Synthesis', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Synthesized Python LangGraph State Machine' })).toBeVisible();
+  await noHorizontalOverflow(page);
+  await page.getByRole('button', { name: /Verified Verification Matrix/ }).click();
+  await expect(page.getByText(/Verified Functional/).first()).toBeVisible();
+  await noHorizontalOverflow(page);
+  await page.goto('/social-deck');
+  await page.getByRole('button', { name: '2. AutoPilot FDE: 4-Panel Editorial' }).click();
+  await noHorizontalOverflow(page);
+  await page.getByRole('button', { name: '3. 5-Slide Master Pitch Deck' }).click();
+  await expect(page.getByRole('button', { name: /Copy.*(Tweet|Post)/i }).first()).toBeVisible();
+  await noHorizontalOverflow(page);
 });

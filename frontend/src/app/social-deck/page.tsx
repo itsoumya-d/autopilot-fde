@@ -72,7 +72,7 @@ export default function SocialDeckPage() {
       </div>
 
       {/* Theme Switcher Tabs */}
-      <div className="flex justify-center gap-3 mb-12">
+      <div className="flex flex-wrap justify-center gap-3 mb-12">
         {[
           { id: 'infographic', label: '1. HostShift: Multi-Host Infographic' },
           { id: 'editorial', label: '2. AutoPilot FDE: 4-Panel Editorial' },
@@ -99,7 +99,7 @@ export default function SocialDeckPage() {
       {activeTheme === 'infographic' && (
         <div className="space-y-12 max-w-4xl mx-auto">
           {/* Card Frame (Exact Replica of Reference 2) */}
-          <div className="bg-white rounded-3xl p-10 border-2 border-slate-200 shadow-2xl relative overflow-hidden">
+          <div className="bg-white rounded-3xl p-6 sm:p-10 border-2 border-slate-200 shadow-2xl relative overflow-hidden">
             {/* Header */}
             <div className="text-center mb-10">
               <h2 className="text-4xl sm:text-6xl font-black tracking-tight text-slate-950">
@@ -137,7 +137,7 @@ export default function SocialDeckPage() {
               {/* Right Side: Rich Multi-Host Balloon Bouquet */}
               <div className="flex flex-col items-center">
                 {/* Bouquet Grid */}
-                <div className="relative w-full max-w-sm h-64 flex flex-wrap justify-center items-center gap-2 p-2">
+                <div className="relative w-full max-w-sm min-h-64 flex flex-wrap justify-center items-center gap-2 p-2">
                   {[
                     { label: 'SwiftUI Native', color: 'bg-blue-600 text-white', icon: Smartphone },
                     { label: 'Jetpack Compose', color: 'bg-lime-400 text-slate-900', icon: Smartphone },
@@ -166,7 +166,7 @@ export default function SocialDeckPage() {
 
                 {/* Right 3D Label */}
                 <div className="mt-12 text-center">
-                  <div className="text-5xl font-black tracking-widest text-blue-600 border-b-4 border-blue-600 pb-1">
+                  <div className="text-3xl sm:text-5xl font-black tracking-widest text-blue-600 border-b-4 border-blue-600 pb-1">
                     MULTI-HOST
                   </div>
                   <div className="mt-4 flex items-center justify-center gap-1 text-emerald-600 font-bold text-sm">

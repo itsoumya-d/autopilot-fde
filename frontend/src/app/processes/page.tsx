@@ -97,7 +97,7 @@ export default function Processes() {
       {notice && <div role="status" className="rounded-xl border border-green-500/30 bg-green-500/10 p-4 text-green-200">{notice}</div>}
       {error && <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-200">{error}</div>}
       {loading && <p role="status" className="text-sm text-slate-400">Loading workflows…</p>}
-      <div className="grid gap-6 lg:grid-cols-[1.55fr_1fr]" aria-busy={loading}>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.55fr_1fr]" aria-busy={loading}>
         <div className="h-[470px] overflow-hidden rounded-2xl border border-slate-800 bg-[#08111f]">
           <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodeClick={(_, node) => setSelectedId(node.id)} fitView className="bg-[#08111f]"><Background color="#1e293b" gap={20} /><Controls className="!border-slate-700 !bg-slate-900 !fill-slate-200" /></ReactFlow>
         </div>

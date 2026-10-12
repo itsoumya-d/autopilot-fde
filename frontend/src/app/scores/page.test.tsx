@@ -44,6 +44,8 @@ describe('Automation opportunity states', () => {
     expect(first.getAttribute('aria-pressed')).toBe('true');
     expect(second.getAttribute('aria-pressed')).toBe('false');
     await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole('region', { name: 'Workflow scores table' }));
+    await user.tab();
     expect(document.activeElement).toBe(first);
     await user.tab();
     expect(document.activeElement).toBe(second);

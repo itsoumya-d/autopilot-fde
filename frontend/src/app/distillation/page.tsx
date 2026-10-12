@@ -122,9 +122,9 @@ export default function DistillationPage() {
             <h2 id="cost-heading" className="text-2xl font-extrabold text-white">${Math.abs(netSavings).toLocaleString()} / year {netSavings >= 0 ? 'potential savings' : 'additional cost'}</h2>
             <p className="text-slate-400 text-xs">Assumed cloud API: ${annualTeacherCost.toLocaleString()}/yr · Assumed local inference: ${annualStudentCost.toLocaleString()}/yr.</p>
           </div>
-          <div className="flex items-center gap-4">
-            <label htmlFor="monthly-volume" className="text-xs text-slate-400 whitespace-nowrap">Monthly volume</label>
-            <input id="monthly-volume" type="range" min="10000" max="500000" step="10000" value={monthlyVolume} onChange={(e) => setMonthlyVolume(Number(e.target.value))} className="accent-emerald-500 w-40" />
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 md:w-72">
+            <label htmlFor="monthly-volume" className="col-span-2 text-xs text-slate-400">Monthly volume</label>
+            <input id="monthly-volume" type="range" min="10000" max="500000" step="10000" value={monthlyVolume} onChange={(e) => setMonthlyVolume(Number(e.target.value))} className="min-w-0 w-full accent-emerald-500" />
             <output htmlFor="monthly-volume" className="text-xs font-mono font-bold text-emerald-300 w-20 text-right">{monthlyVolume.toLocaleString()}</output>
           </div>
         </div>
@@ -134,10 +134,10 @@ export default function DistillationPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <section aria-labelledby="model-heading" className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 space-y-5">
           <h2 id="model-heading" className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2"><Sparkles size={16} className="text-purple-400" aria-hidden="true" />1. Configure Recipe</h2>
-          <fieldset disabled={isGenerating} className="space-y-3 disabled:opacity-70">
+          <fieldset disabled={isGenerating} className="min-w-0 space-y-3 disabled:opacity-70">
             <div>
               <label htmlFor="teacher-model" className="text-xs font-semibold text-slate-400 block mb-1.5">Teacher model reference (metadata only)</label>
-              <select id="teacher-model" value={teacher} onChange={(e) => { setTeacher(e.target.value as TeacherModel); clearJobResult(); }} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-purple-500">
+              <select id="teacher-model" value={teacher} onChange={(e) => { setTeacher(e.target.value as TeacherModel); clearJobResult(); }} className="min-w-0 w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-purple-500">
                 <option value="gpt-4o">OpenAI GPT-4o</option>
                 <option value="claude-3-5-sonnet">Anthropic Claude 3.5 Sonnet</option>
                 <option value="deepseek-r1">DeepSeek-R1</option>
@@ -146,7 +146,7 @@ export default function DistillationPage() {
             </div>
             <div>
               <label htmlFor="student-model" className="text-xs font-semibold text-slate-400 block mb-1.5">Target student model</label>
-              <select id="student-model" value={student} onChange={(e) => { setStudent(e.target.value as StudentModel); clearJobResult(); }} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-purple-500">
+              <select id="student-model" value={student} onChange={(e) => { setStudent(e.target.value as StudentModel); clearJobResult(); }} className="min-w-0 w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-purple-500">
                 <option value="Qwen/Qwen2.5-7B-Instruct">Qwen 2.5 7B Instruct</option>
                 <option value="meta-llama/Meta-Llama-3.1-8B-Instruct">Meta Llama 3.1 8B Instruct</option>
                 <option value="mistralai/Mistral-7B-Instruct-v0.3">Mistral 7B Instruct v0.3</option>
@@ -170,7 +170,7 @@ export default function DistillationPage() {
           <p id="preview-help" className="text-xs text-slate-400">Regex patterns can miss names and other personal or sensitive data. Review outputs manually. This preview is separate from the workspace dataset and does not certify anonymization or legal compliance.</p>
           <div className="space-y-2">
             <label htmlFor="preview-text" className="text-xs font-semibold text-slate-400">Sample operational text</label>
-            <textarea id="preview-text" aria-describedby="preview-help" value={previewText} onChange={(e) => updatePreviewText(e.target.value)} rows={3} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono" />
+            <textarea id="preview-text" aria-describedby="preview-help" value={previewText} onChange={(e) => updatePreviewText(e.target.value)} rows={3} className="min-w-0 w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono" />
             <button onClick={handlePreviewScrub} disabled={isPreviewing || !previewText.trim()} className="px-3 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 rounded text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed">{isPreviewing ? 'Checking redactions…' : 'Test PII Sanitizer'}</button>
           </div>
           <div aria-live="polite" aria-busy={isPreviewing}>

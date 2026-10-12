@@ -89,7 +89,7 @@ export default function ShowcasePage() {
       </motion.div>
 
       {/* Navigation Tabs */}
-      <div className="flex justify-center gap-3 mb-10">
+      <div className="flex flex-wrap justify-center gap-3 mb-10">
         {[
           { id: 'simulator', label: 'Monte Carlo Simulator', icon: Sliders },
           { id: 'code', label: 'LangGraph Code Synthesis', icon: Code2 },
@@ -164,7 +164,7 @@ export default function ShowcasePage() {
           {/* Center & Right Column: Simulation Controls & Telemetry */}
           <div className="lg:col-span-2 space-y-6">
             <div className="glass-card rounded-2xl p-7 border border-slate-800/80 bg-slate-900/50 backdrop-blur-xl">
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-6">
                 <div>
                   <h3 className="text-xl font-bold text-white flex items-center gap-2">
                     <Activity size={20} className="text-cyan-400 animate-spin" />
@@ -204,7 +204,7 @@ export default function ShowcasePage() {
               </div>
 
               {/* Telemetry Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 min-[400px]:grid-cols-2 xl:grid-cols-4 gap-4">
                 <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
                   <span className="text-xs text-slate-400">Straight-Through Rate</span>
                   <div className={`text-2xl font-black mt-1 ${dynamicSTR > 50 ? 'text-emerald-400' : 'text-amber-400'}`}>

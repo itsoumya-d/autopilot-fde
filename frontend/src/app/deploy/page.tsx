@@ -191,12 +191,12 @@ export default function Deploy() {
       {loading && <p className="mt-2 text-sm text-slate-400">Loading deployment records…</p>}
     </div>
     {(error || loadError) && <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-200">{error && <p>{error}</p>}{loadError && <p>{loadError}</p>}</div>}
-    <div className="grid gap-7 lg:grid-cols-[1fr_1.1fr]">
+    <div className="grid grid-cols-1 gap-7 lg:grid-cols-[1fr_1.1fr]">
       <section aria-labelledby="pilot-configuration" className="glass-card rounded-2xl p-6">
         <div className="flex items-center gap-2"><Rocket className="text-cyan-300" size={20} aria-hidden="true" /><h2 id="pilot-configuration" className="text-xl font-semibold">Pilot configuration</h2></div>
-        <fieldset disabled={disabled}>
+        <fieldset disabled={disabled} className="min-w-0">
           <label className="mt-6 block text-sm font-medium text-slate-300">Evidence-backed workflow
-            <select value={selectedId} onChange={event => setSelectedId(event.target.value)} disabled={disabled || !selectedId} className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-900 p-3 text-white focus:border-cyan-400 focus:outline-none disabled:opacity-50">
+            <select value={selectedId} onChange={event => setSelectedId(event.target.value)} disabled={disabled || !selectedId} className="mt-2 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 p-3 text-white focus:border-cyan-400 focus:outline-none disabled:opacity-50">
               {!selectedId && <option value="">{loading ? 'Loading workflows…' : !hasLoaded ? 'Workflows unavailable' : 'No eligible workflows'}</option>}
               {scores.map(item => {
                 const workflow = processes.find(processItem => processItem.id === item.process_id);
