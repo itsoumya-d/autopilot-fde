@@ -232,7 +232,7 @@ export default function Deploy() {
         <button onClick={() => { if (!mutation.current) void load(); }} disabled={Boolean(working)} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm disabled:opacity-50"><Clock3 size={16} aria-hidden="true" />{refreshRequired ? 'Retry refresh' : 'Refresh records'}</button>
       </div>
       <div className="divide-y divide-slate-800">
-        {agents.length ? agents.map(agent => <div key={agent.id} role="group" aria-label={agent.name} className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
+        {agents.length ? agents.map(agent => <div key={agent.id} data-testid={`agent-record-${agent.id}`} role="group" aria-label={agent.name} className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="flex items-center gap-2"><p className="font-medium">{agent.name}</p><span className={`rounded-full border px-2 py-0.5 text-xs ${agent.status === 'running' ? 'border-green-400/30 bg-green-400/10 text-green-200' : agent.status === 'failed' ? 'border-red-400/30 bg-red-400/10 text-red-200' : 'border-slate-400/30 bg-slate-400/10 text-slate-200'}`}>{statusLabels[agent.status]}</span></div>
             <p className="mt-1 text-sm text-slate-400">{agent.config.traffic_percentage}% configured traffic · {agent.config.mode} mode · {agent.config.enabled_steps.join(', ') || 'Default step selection'} · {agent.metrics.drafts_created ?? 0} recorded drafts</p>

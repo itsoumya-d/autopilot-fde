@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { 
   Share2, 
@@ -22,12 +22,37 @@ import {
 
 export default function SocialDeckPage() {
   const [copiedIndex, setCopiedIndex] = useState<string | null>(null);
+  const [copyingIndex, setCopyingIndex] = useState<string | null>(null);
+  const [copyError, setCopyError] = useState('');
+  const copyRequest = useRef(0);
+  const copyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    copyRequest.current += 1;
+    if (copyTimeout.current !== null) clearTimeout(copyTimeout.current);
+  }, []);
   const [activeTheme, setActiveTheme] = useState<'infographic' | 'editorial' | 'carousel'>('infographic');
 
-  const copyToClipboard = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedIndex(id);
-    setTimeout(() => setCopiedIndex(null), 2000);
+  const copyToClipboard = async (text: string, id: string) => {
+    const request = ++copyRequest.current;
+    if (copyTimeout.current !== null) clearTimeout(copyTimeout.current);
+    setCopiedIndex(null);
+    setCopyError('');
+    setCopyingIndex(id);
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(text);
+      if (request !== copyRequest.current) return;
+      setCopiedIndex(id);
+      copyTimeout.current = setTimeout(() => {
+        setCopiedIndex(null);
+        copyTimeout.current = null;
+      }, 2000);
+    } catch {
+      if (request === copyRequest.current) setCopyError('Could not copy to the clipboard. Try again or copy the text manually.');
+    } finally {
+      if (request === copyRequest.current) setCopyingIndex(null);
+    }
   };
 
   return (
@@ -66,6 +91,9 @@ export default function SocialDeckPage() {
           </button>
         ))}
       </div>
+
+      {copyError && <p role="alert" className="mx-auto mb-6 max-w-4xl rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{copyError}</p>}
+      <p role="status" className="sr-only">{copyingIndex ? 'Copying to clipboard…' : copiedIndex ? 'Copied to clipboard.' : ''}</p>
 
       {/* THEME 1: HOSTSHIFT MULTI-HOST BALLOON INFOGRAPHIC */}
       {activeTheme === 'infographic' && (
@@ -160,6 +188,8 @@ export default function SocialDeckPage() {
             <div className="flex justify-between items-center mb-3">
               <span className="font-bold text-sm text-slate-800">Copy Post for LinkedIn / X</span>
               <button
+                type="button"
+                disabled={copyingIndex === 'infographic-text'}
                 onClick={() => copyToClipboard(
                   `UI Generation is NOT just Web Code.\n\nMost benchmarks evaluate AI on basic HTML/CSS. But real computer-use agents must operate across:\n- SwiftUI (iOS & macOS)\n- Jetpack Compose (Android)\n- Terminal CLI / TUI\n- Web DOM\n\nIntroducing HostShift: 100 UI tasks, 142/142 CI unit tests, deterministic state oracles.\n\nCode: https://github.com/your-username/hostshift\n\n@sama @OriolVinyalsML @demishassabis`,
                   'infographic-text'
@@ -167,7 +197,7 @@ export default function SocialDeckPage() {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 font-semibold text-xs hover:bg-blue-100 transition"
               >
                 {copiedIndex === 'infographic-text' ? <Check size={14} /> : <Copy size={14} />}
-                <span>{copiedIndex === 'infographic-text' ? 'Copied!' : 'Copy Post'}</span>
+                <span>{copyingIndex === 'infographic-text' ? 'Copying…' : copiedIndex === 'infographic-text' ? 'Copied!' : 'Copy Post'}</span>
               </button>
             </div>
             <p className="text-xs text-slate-600 font-mono bg-slate-50 p-4 rounded-xl border border-slate-200">
@@ -343,11 +373,13 @@ export default function SocialDeckPage() {
               </div>
 
               <button
+                type="button"
+                disabled={copyingIndex === `slide-${idx}`}
                 onClick={() => copyToClipboard(slide.tweet, `slide-${idx}`)}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-blue-600 transition shadow-md shrink-0"
               >
                 {copiedIndex === `slide-${idx}` ? <Check size={16} /> : <Copy size={16} />}
-                <span>{copiedIndex === `slide-${idx}` ? 'Copied Tweet!' : 'Copy 280-char Tweet'}</span>
+                <span>{copyingIndex === `slide-${idx}` ? 'Copying…' : copiedIndex === `slide-${idx}` ? 'Copied Tweet!' : 'Copy 280-char Tweet'}</span>
               </button>
             </div>
           ))}

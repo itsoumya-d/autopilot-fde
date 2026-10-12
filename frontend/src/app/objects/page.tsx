@@ -19,10 +19,12 @@ export default function Objects() {
   const [selectedId, setSelectedId] = useState('');
 
   useEffect(() => {
+    let current = true;
     api
       .objectLog()
-      .then((response) => setLog(response as unknown as ObjectLog))
-      .catch((reason: Error) => setError(reason.message));
+      .then((response) => { if (current) setLog(response as unknown as ObjectLog); })
+      .catch((reason: Error) => { if (current) setError(reason.message); });
+    return () => { current = false; };
   }, []);
 
   const typeNames = useMemo(
@@ -41,12 +43,12 @@ export default function Objects() {
         <h1 className="mt-2 text-3xl font-bold">Object Lens</h1>
         <p className="mt-1 text-slate-400">
           Multi-object event log: every mined event references typed objects with
-          qualified relationships. Click an object to walk its chronology.
+          qualified relationships. Select an object to walk its chronology.
         </p>
       </header>
 
       {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-200">
+        <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-200">
           {error}
         </div>
       )}
@@ -102,7 +104,17 @@ export default function Objects() {
                         selectedId === object.id ? 'bg-cyan-500/5' : ''
                       }`}
                     >
-                      <td className="p-4 font-mono text-sm">{object.id}</td>
+                      <td className="p-4 font-mono text-sm">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedId(object.id)}
+                          aria-pressed={selectedId === object.id}
+                          aria-controls="object-trace"
+                          className="rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-900"
+                        >
+                          {object.id}
+                        </button>
+                      </td>
                       <td className="p-4">
                         <span className="inline-flex items-center gap-2 text-sm text-slate-300">
                           <span className={`inline-block h-2.5 w-2.5 rounded-full ${colorFor(object.type)}`} />
@@ -119,7 +131,7 @@ export default function Objects() {
               </table>
             </section>
 
-            <aside className="glass-card rounded-2xl p-6">
+            <aside id="object-trace" className="glass-card rounded-2xl p-6">
               <h2 className="text-lg font-semibold">Object trace</h2>
               {!selectedId && (
                 <p className="mt-3 text-sm text-slate-400">
@@ -152,7 +164,7 @@ export default function Objects() {
         </>
       )}
 
-      {!log && !error && <p className="text-slate-400">Loading object log…</p>}
+      {!log && !error && <p role="status" className="text-slate-400">Loading object log…</p>}
     </div>
   );
 }
@@ -171,6 +183,8 @@ function TypeChip({ label, count, active, onClick, dot }: {
 }) {
   return (
     <button
+      type="button"
+      aria-pressed={active}
       onClick={onClick}
       className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors ${
         active ? 'border-cyan-400/60 bg-cyan-500/10 text-cyan-200' : 'border-slate-700 text-slate-300 hover:border-slate-500'
