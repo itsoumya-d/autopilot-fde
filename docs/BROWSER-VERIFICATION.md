@@ -40,6 +40,20 @@ Chromium's sandbox stays enabled. If browser/local-page access is blocked, stop
 and report the restriction; do not disable security, alias the target, or tunnel
 around it. `npm run test:e2e:list` discovers tests without starting a browser/server.
 
+The standard public Ubuntu 24.04 Actions job uses its preinstalled stable Chrome
+through Playwright's supported `chrome` channel with `chromiumSandbox: true`.
+Ubuntu's existing AppArmor profile covers that installed Chrome binary. A
+fail-fast launch check aborts the job if Chrome or sandbox support is missing;
+it does not change AppArmor, sysctl, browser flags, or system security settings.
+The initial downloaded headless-shell run failed before page execution with
+`No usable sandbox!`; it is not a UI test pass. Local default discovery still
+uses Playwright Chromium; set `AUTOPILOT_BROWSER_CHANNEL=chrome` only on a
+permitted machine with an existing supported Chrome installation.
+
+References: [supported channels](https://playwright.dev/docs/browsers#google-chrome--microsoft-edge),
+[Ubuntu's installed Chrome profile](https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md),
+[runner image software](https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md).
+
 The standard public Actions job has read-only repository permission, disables
 persistent checkout credentials, and uses pinned official setup actions. It has
 no secret inputs, artifact uploads, persistent caches, paid services or deployment

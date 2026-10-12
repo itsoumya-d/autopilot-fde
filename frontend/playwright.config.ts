@@ -16,6 +16,9 @@ export default defineConfig({
   reporter: [['list'], ['json', { outputFile: 'browser-report/results.json' }]],
   use: {
     browserName: 'chromium',
+    // Ubuntu's existing AppArmor profile supports the runner's installed Chrome.
+    // Keep the Chromium sandbox enabled; never fall back to --no-sandbox.
+    channel: process.env.AUTOPILOT_BROWSER_CHANNEL === 'chrome' ? 'chrome' : undefined,
     baseURL: 'http://127.0.0.1:3000',
     viewport: { width: 1440, height: 1000 },
     colorScheme: 'dark',
