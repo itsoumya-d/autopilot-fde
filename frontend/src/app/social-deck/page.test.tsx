@@ -125,3 +125,27 @@ describe('Social Studio clipboard feedback', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 });
+
+
+describe('Social Studio preview boundaries', () => {
+  it('retains all three layouts and copies short posts with their example disclosures', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    clipboard(writeText);
+    render(<SocialDeckPage />);
+    expect(screen.getByRole('region', { name: 'Infographic preview' })).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: '2. AutoPilot FDE: 4-Panel Editorial' }));
+    expect(screen.getByRole('region', { name: 'Four-panel editorial preview' })).toBeDefined();
+    expect(screen.getByText(/No current benchmark, customer outcome/)).toBeDefined();
+    const buttons = carousel();
+    expect(buttons).toHaveLength(5);
+    for (const button of buttons) await act(async () => { fireEvent.click(button); });
+    expect(writeText).toHaveBeenCalledTimes(5);
+    for (const [text] of writeText.mock.calls) {
+      expect(text.length).toBeLessThanOrEqual(280);
+      expect(text).not.toContain('your-username');
+    }
+    expect(writeText.mock.calls[0][0]).toContain('static example');
+    expect(writeText.mock.calls[2][0]).toContain('illustrative example data');
+    expect(writeText.mock.calls[4][0]).toContain('not a current verified CI result');
+  });
+});

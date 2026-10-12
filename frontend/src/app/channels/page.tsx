@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
-import { AlertCircle, CheckCircle2, CirclePause, Database, LockKeyhole, MessageSquare, MessagesSquare, ShieldCheck } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { api, Channel } from '@/lib/api';
+import { EmptyState, ErrorState, PageHeader, SectionHeader, SourceLabel, StatusBadge } from '@/components/Workspace';
 
 const channelStatuses = {
-  active: { label: 'Active', icon: CheckCircle2, className: 'border-green-400/30 bg-green-400/10 text-green-200' },
-  inactive: { label: 'Inactive', icon: CirclePause, className: 'border-slate-500/30 bg-slate-500/10 text-slate-300' },
-  error: { label: 'Error', icon: AlertCircle, className: 'border-red-400/30 bg-red-400/10 text-red-200' },
+  active: { label: 'Active', tone: 'success' as const },
+  inactive: { label: 'Inactive', tone: 'neutral' as const },
+  error: { label: 'Error', tone: 'danger' as const },
 };
+const serviceNames: Record<Channel['type'], string> = { slack: 'Slack', whatsapp: 'WhatsApp', email: 'Email', call: 'Call' };
 
 export default function Channels() {
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -24,27 +25,46 @@ export default function Channels() {
     return () => { active = false; };
   }, []);
 
-  return <div className="max-w-6xl mx-auto space-y-8">
-    <div><div className="flex items-center gap-2 text-sm text-cyan-300"><ShieldCheck size={16} /> Slack-first integration</div><h1 className="mt-2 text-3xl font-bold">Observation sources</h1><p className="mt-1 text-slate-400">The MVP has no write scopes and ingests only channel messages and thread relationships.</p></div>
-    {error && <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-200">{error}</div>}
-    <div className="grid gap-6 md:grid-cols-2">
-      {channels.map((channel) => {
-        const status = channelStatuses[channel.status];
-        const StatusIcon = status.icon;
-        // ChannelPublic currently omits scope; do not infer it from connection status.
-        const scope = channel.read_only === true ? 'Read-only' : channel.read_only === false ? 'Not read-only' : 'Not reported';
-        return <div key={channel.id} className="glass-card rounded-2xl p-6">
-          <div className="flex items-start justify-between"><div className="rounded-xl bg-purple-500/10 p-3 text-purple-300"><MessagesSquare size={26} /></div><div className={`flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs ${status.className}`}><StatusIcon size={13} aria-hidden="true" /> {status.label}</div></div>
-          <h2 className="mt-6 text-xl font-semibold">{channel.name}</h2>
-          <p className="mt-2 text-sm text-slate-400">{channel.message_count} observations available for discovery</p>
-          <div className="mt-6 grid grid-cols-2 gap-3"><Mini icon={<LockKeyhole size={15} />} label="Scope" value={scope} /><Mini icon={<Database size={15} />} label="Case key" value="Slack thread" /></div>
-        </div>;
-      })}
-      {loading && <div role="status" className="glass-card rounded-2xl p-6 text-slate-400">Loading channel information…</div>}
-      {!loading && !channels.length && !error && <div role="status" className="glass-card rounded-2xl p-6 text-slate-400">No observation sources connected yet.</div>}
-      <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/30 p-6"><MessageSquare className="text-slate-500" /><h2 className="mt-5 text-xl font-semibold text-slate-200">Next integrations</h2><p className="mt-2 text-sm text-slate-400">Shared inbox and CRM connectors are intentionally deferred until the Slack evidence and approval workflow are validated.</p><div className="mt-5 flex flex-wrap gap-2">{['Shared Gmail / Outlook', 'CRM webhooks', 'Call transcripts'].map((item) => <span key={item} className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-500">{item}</span>)}</div></div>
+  return <div className="page-stack">
+    <PageHeader eyebrow="Workspace / Sources" title="Observation sources" description="Review the sources behind discovery. Connection status and access mode are reported separately." />
+    {error && <ErrorState>{error}</ErrorState>}
+    <section className="surface" aria-label="Source register" aria-busy={loading}>
+      <div className="surface-pad border-b border-[var(--border)]">
+        <SectionHeader title="Source register" description="Available observations and reported access" />
+      </div>
+      {channels.length > 0 && <div className="register divide-y divide-[var(--border)]">
+        {channels.map(channel => {
+          const status = channelStatuses[channel.status];
+          // ChannelPublic currently omits scope; do not infer it from connection status.
+          const scope = channel.read_only === true ? 'Read-only' : channel.read_only === false ? 'Not read-only' : 'Not reported';
+          return <article key={channel.id} aria-label={channel.name} className="register-row grid min-w-0 gap-x-6 gap-y-4 p-5 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.8fr)_1fr_1fr_1fr]">
+            <div className="min-w-0">
+              <p className="metadata mb-1">{serviceNames[channel.type] ?? channel.type}</p>
+              <h3 className="break-words text-base font-semibold">{channel.name}</h3>
+              <p className="mono metadata mt-2 break-all">{channel.id}</p>
+            </div>
+            <div><p className="metadata mb-2">Status</p><StatusBadge tone={status.tone}>{status.label}</StatusBadge></div>
+            <div><p className="metadata mb-1">Observed messages</p><p className="text-lg font-semibold tabular-nums">{channel.message_count}</p></div>
+            <div><p className="metadata mb-2">Access mode</p><p className="text-sm">{scope}</p></div>
+          </article>;
+        })}
+      </div>}
+      {loading && <p role="status" className="surface-pad muted">Loading channel information…</p>}
+      {!loading && !channels.length && !error && <EmptyState title="No observation sources connected yet.">Configure a source before running workflow discovery.</EmptyState>}
+      {!loading && error && !channels.length && <p className="surface-pad muted">Source details are unavailable. Reload this page to try again.</p>}
+    </section>
+    <div className="grid gap-8 lg:grid-cols-2">
+      <section className="border-t border-[var(--border)] pt-5">
+        <SourceLabel>Read-only discovery</SourceLabel>
+        <h2 className="mt-3 text-lg font-semibold">Data handling boundary</h2>
+        <p className="mt-2 max-w-prose text-sm leading-6 text-[var(--text-muted)]">The MVP reads Slack messages and thread relationships. Discovery retains source IDs and evidence snippets for review. Agents receive no Slack write permissions; the register shows access information only when the API reports it.</p>
+      </section>
+      <section className="border-t border-[var(--border)] pt-5">
+        <SourceLabel>Planned · unavailable</SourceLabel>
+        <h2 className="mt-3 text-lg font-semibold">Next integrations</h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">Shared inbox and CRM connectors are deferred until the Slack evidence and approval workflow are validated.</p>
+        <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-[var(--text-muted)]">{['Shared Gmail / Outlook', 'CRM webhooks', 'Call transcripts'].map(item => <li key={item}>{item}</li>)}</ul>
+      </section>
     </div>
-    <section className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-6"><h2 className="font-semibold text-cyan-100">Data handling boundary</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Source messages are read-only. Discovery retains source IDs and evidence snippets so a reviewer can challenge each inferred activity. Agents do not receive Slack write permissions in this MVP.</p></section>
   </div>;
 }
-function Mini({ icon, label, value }: { icon: ReactNode; label: string; value: string }) { return <div className="rounded-lg bg-slate-900/70 p-3"><div className="flex items-center gap-1.5 text-xs text-slate-500">{icon}{label}</div><p className="mt-1 text-sm font-medium">{value}</p></div>; }

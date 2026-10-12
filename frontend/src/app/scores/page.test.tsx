@@ -67,6 +67,27 @@ describe('Automation opportunity states', () => {
     expect(within(screen.getByRole('complementary')).getByText('Recommendation for Invoice review')).toBeTruthy();
   });
 
+  it.each([
+    ['observation_only', 'Observe only'], ['draft_only', 'Draft + review'], ['assisted', 'Assisted'], ['autonomous', 'Autonomous'],
+  ])('renders the returned %s recommendation without hard-coding draft mode', async (recommended_mode, label) => {
+    setup([{ ...scores[0], recommended_mode }]);
+    render(<Scores />);
+    const row = (await screen.findByRole('button', { name: 'Show score for Support triage' })).closest('tr')!;
+    expect(within(row).getByText(label)).toBeTruthy();
+    if (recommended_mode !== 'draft_only') expect(within(row).queryByText('Draft + review')).toBeNull();
+  });
+
+  it('provides factor values and eligible/blocked steps as inspector text', async () => {
+    setup([scores[0]]);
+    render(<Scores />);
+    await screen.findByRole('button', { name: 'Show score for Support triage' });
+    const inspector = within(screen.getByRole('complementary'));
+    expect(inspector.getByText('consistency')).toBeTruthy();
+    expect(inspector.getByText('Draft Support triage')).toBeTruthy();
+    expect(inspector.getByText('Send Support triage')).toBeTruthy();
+    expect(inspector.getByRole('meter').getAttribute('aria-valuenow')).toBe('70');
+  });
+
   it('announces a failed score request without retaining a loading explanation', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => response({ detail: 'Score service unavailable' }, 503)));
     render(<Scores />);

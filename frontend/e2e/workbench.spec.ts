@@ -30,7 +30,7 @@ test('live refund: one pending ticket becomes resolved; replay is refused', asyn
 });
 
 test('live invoice fails on discrepancy and passes after explicit correction', async ({ page }) => {
-  await openWorkbench(page, '3. Document Intelligence');
+  await openWorkbench(page, 'Invoice checks');
   await page.getByRole('checkbox', { name: 'Inject a sample $10 arithmetic discrepancy' }).check();
   await page.getByRole('button', { name: 'Run Deterministic Audit', exact: true }).click();
   await expect(page.getByText('Sample validation failed', { exact: true })).toBeVisible();
@@ -43,7 +43,7 @@ test('live invoice fails on discrepancy and passes after explicit correction', a
 });
 
 test('live role-filtered knowledge, onboarding quarantine and single-use rollback', async ({ page }) => {
-  await openWorkbench(page, '1. Knowledge RAG');
+  await openWorkbench(page, 'Knowledge');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page.getByText('Role filter passed', { exact: true })).toBeVisible();
   await expect(page.getByText(/Sample citation:/).first()).toBeVisible();
@@ -51,12 +51,12 @@ test('live role-filtered knowledge, onboarding quarantine and single-use rollbac
   await page.getByRole('button', { name: 'Executive compensation', exact: true }).click();
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page.getByText('Blocked by sample role filter', { exact: true })).toBeVisible();
-  await page.getByRole('tab', { name: '4. Data Onboarding', exact: true }).click();
+  await page.getByRole('tab', { name: 'Data onboarding', exact: true }).click();
   await page.getByRole('button', { name: 'Process Sample CSV Batch', exact: true }).click();
   await expect(page.getByText('Accepted rows', { exact: true }).locator('..')).toContainText('2');
   await expect(page.getByText('Quarantined rows', { exact: true }).locator('..')).toContainText('3');
   await expect(page.getByText(/Row 2:/)).toBeVisible();
-  await page.getByRole('tab', { name: '5. Ops Command Center', exact: true }).click();
+  await page.getByRole('tab', { name: 'Operations', exact: true }).click();
   await page.getByRole('button', { name: 'Run Sample Incident', exact: true }).click();
   await expect(page.getByText('Record state: remediated', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Roll Back Sample Incident', exact: true }).click();
@@ -112,13 +112,13 @@ test('delayed real response locks repeated submit and cannot repaint a dismissed
     if (!box) throw new Error('Pending button is not visible');
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { clickCount: 2 });
     const aborted = page.waitForEvent('requestfailed', { predicate: request => request.url() === `${prefix}/project2/ticket` });
-    await page.getByRole('tab', { name: '3. Document Intelligence', exact: true }).click();
+    await page.getByRole('tab', { name: 'Invoice checks', exact: true }).click();
     expect((await aborted).failure()?.errorText).toContain('ERR_ABORTED');
     confirmedAbort = true;
     release();
     await completed;
     expect(routeFailure).toBeUndefined();
-    await page.getByRole('tab', { name: '2. Intake-to-Resolution', exact: true }).click();
+    await page.getByRole('tab', { name: 'Intake', exact: true }).click();
     await expect(page.getByText('Ingest a sample ticket to inspect its state.', { exact: true })).toBeVisible();
     await expect(page.getByText('pending_approval', { exact: true })).toHaveCount(0);
     expect(requests).toBe(1);
@@ -141,13 +141,13 @@ test('malformed response cannot become success and mode switching clears evidenc
 });
 
 test('workbench tabs support arrow, Home and End keyboard navigation', async ({ page }) => {
-  await openWorkbench(page, '1. Knowledge RAG');
-  await page.getByRole('tab', { name: '1. Knowledge RAG', exact: true }).focus();
+  await openWorkbench(page, 'Knowledge');
+  await page.getByRole('tab', { name: 'Knowledge', exact: true }).focus();
   await page.keyboard.press('ArrowRight');
-  await expect(page.getByRole('tab', { name: '2. Intake-to-Resolution', exact: true })).toBeFocused();
+  await expect(page.getByRole('tab', { name: 'Intake', exact: true })).toBeFocused();
   await expect(page.getByRole('heading', { name: 'Intake-to-resolution workflow', exact: true })).toBeVisible();
   await page.keyboard.press('End');
-  await expect(page.getByRole('tab', { name: '5. Ops Command Center', exact: true })).toBeFocused();
+  await expect(page.getByRole('tab', { name: 'Operations', exact: true })).toBeFocused();
   await page.keyboard.press('Home');
-  await expect(page.getByRole('tab', { name: '1. Knowledge RAG', exact: true })).toBeFocused();
+  await expect(page.getByRole('tab', { name: 'Knowledge', exact: true })).toBeFocused();
 });

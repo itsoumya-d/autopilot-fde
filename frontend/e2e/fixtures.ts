@@ -29,7 +29,7 @@ export const test = base.extend<{ browserSafety: void }>({
 });
 export { expect };
 
-export async function openWorkbench(page: Page, tab = '2. Intake-to-Resolution') {
+export async function openWorkbench(page: Page, tab = 'Intake') {
   await page.goto('/archetypes');
   await expect(page.getByRole('radio', { name: 'Connected API', exact: true })).toBeChecked();
   await page.getByRole('tab', { name: tab, exact: true }).click();

@@ -21,7 +21,7 @@ export default defineConfig({
     channel: process.env.AUTOPILOT_BROWSER_CHANNEL === 'chrome' ? 'chrome' : undefined,
     baseURL: 'http://127.0.0.1:3000',
     viewport: { width: 1440, height: 1000 },
-    colorScheme: 'dark',
+    colorScheme: 'light',
     serviceWorkers: 'block',
     reducedMotion: 'reduce',
     launchOptions: { chromiumSandbox: true },

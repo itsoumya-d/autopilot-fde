@@ -26,7 +26,7 @@ describe('Observation sources states', () => {
     render(<Channels />);
     for (const [index, status] of ['Active', 'Inactive', 'Error'].entries()) {
       const heading = await screen.findByRole('heading', { name: channels[index].name });
-      const card = within(heading.parentElement!);
+      const card = within(heading.closest('article')!);
       expect(card.getByText(status)).toBeTruthy();
       expect(card.getByText('Not reported')).toBeTruthy();
       expect(card.queryByText('Read-only active')).toBeNull();
@@ -41,8 +41,22 @@ describe('Observation sources states', () => {
     render(<Channels />);
     const first = await screen.findByRole('heading', { name: 'Read-only source' });
     const second = screen.getByRole('heading', { name: 'Other source' });
-    expect(within(first.parentElement!).getByText('Read-only')).toBeTruthy();
-    expect(within(second.parentElement!).getByText('Not read-only')).toBeTruthy();
+    expect(within(first.closest('article')!).getByText('Read-only')).toBeTruthy();
+    expect(within(second.closest('article')!).getByText('Not read-only')).toBeTruthy();
+  });
+
+  it('reports each service from its API type instead of labeling every source as Slack', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => response([
+      { id: 'email-1', type: 'email', name: 'Support inbox', status: 'active', message_count: 12 },
+      { id: 'calls-1', type: 'call', name: 'Call evidence', status: 'inactive', message_count: 3 },
+    ])));
+    render(<Channels />);
+    const email = await screen.findByRole('article', { name: 'Support inbox' });
+    expect(within(email).getByText('Email')).toBeTruthy();
+    expect(within(email).getByText('12')).toBeTruthy();
+    expect(within(email).getByText('email-1')).toBeTruthy();
+    expect(within(email).queryByText('Slack thread')).toBeNull();
+    expect(within(screen.getByRole('article', { name: 'Call evidence' })).getByText('Call')).toBeTruthy();
   });
 
   it('announces request errors and stops loading without presenting an empty success state', async () => {

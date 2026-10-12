@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Clock3, Loader2, Pause, Play, Rocket, ShieldAlert, ShieldCheck, Trash2 } from 'lucide-react';
+import { Clock3, Loader2, Pause, Play, Trash2 } from 'lucide-react';
+import { ErrorState, PageHeader, SourceLabel, StatusBadge } from '@/components/Workspace';
 import DeploySlider from '@/components/DeploySlider';
 import { api, type APScore, type Agent, type AgentStatus, type Process } from '@/lib/api';
 
@@ -180,23 +181,20 @@ export default function Deploy() {
     }
   }
 
-  return <div className="max-w-6xl mx-auto space-y-7">
-    <div>
-      <div className="flex items-center gap-2 text-sm text-cyan-300"><ShieldCheck size={16} aria-hidden="true" /> Policy-constrained deployment</div>
-      <h1 className="mt-2 text-3xl font-bold">Create a draft pilot</h1>
-      <p className="mt-1 text-slate-400">Save agent configuration and lifecycle records. This page does not start a hosted worker or route live traffic.</p>
-    </div>
+  return <div className="page-stack">
+    <PageHeader eyebrow="Operate / Pilots" title="Create a draft pilot" description="Save agent configuration and lifecycle records. This page does not start a hosted worker or route live traffic." />
     <div role="status" aria-live="polite" aria-atomic="true">
-      {notice && <p className="rounded-xl border border-green-500/30 bg-green-500/10 p-4 text-green-200">{notice}</p>}
-      {loading && <p className="mt-2 text-sm text-slate-400">Loading deployment records…</p>}
+      {notice && <p className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--success)]">{notice}</p>}
+      {loading && <p className="muted text-sm">Loading deployment records…</p>}
     </div>
-    {(error || loadError) && <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-200">{error && <p>{error}</p>}{loadError && <p>{loadError}</p>}</div>}
-    <div className="grid grid-cols-1 gap-7 lg:grid-cols-[1fr_1.1fr]">
-      <section aria-labelledby="pilot-configuration" className="glass-card rounded-2xl p-6">
-        <div className="flex items-center gap-2"><Rocket className="text-cyan-300" size={20} aria-hidden="true" /><h2 id="pilot-configuration" className="text-xl font-semibold">Pilot configuration</h2></div>
+    {(error || loadError) && <ErrorState>{error && <p>{error}</p>}{loadError && <p>{loadError}</p>}</ErrorState>}
+    <div className="surface grid min-w-0 lg:grid-cols-2">
+      <section aria-labelledby="pilot-configuration" className="surface-pad min-w-0">
+        <SourceLabel>01 / Configure</SourceLabel>
+        <h2 id="pilot-configuration" className="mt-3 text-lg font-semibold">Pilot configuration</h2>
         <fieldset disabled={disabled} className="min-w-0">
-          <label className="mt-6 block text-sm font-medium text-slate-300">Evidence-backed workflow
-            <select value={selectedId} onChange={event => setSelectedId(event.target.value)} disabled={disabled || !selectedId} className="mt-2 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 p-3 text-white focus:border-cyan-400 focus:outline-none disabled:opacity-50">
+          <label className="label mt-6">Evidence-backed workflow
+            <select value={selectedId} onChange={event => setSelectedId(event.target.value)} disabled={disabled || !selectedId} className="field mt-2 disabled:opacity-50">
               {!selectedId && <option value="">{loading ? 'Loading workflows…' : !hasLoaded ? 'Workflows unavailable' : 'No eligible workflows'}</option>}
               {scores.map(item => {
                 const workflow = processes.find(processItem => processItem.id === item.process_id);
@@ -204,52 +202,59 @@ export default function Deploy() {
               })}
             </select>
           </label>
-          <div className="mt-6 rounded-xl border border-slate-700 bg-slate-900/70 p-4">
-            <div className="flex items-center justify-between"><div><p className="font-medium">Configured pilot traffic</p><p className="mt-1 text-xs text-slate-500">Saved configuration, capped at 50% in this form.</p></div><p className="text-2xl font-bold text-cyan-300">{traffic}%</p></div>
+          {process && <p className="mono metadata mt-2 break-all">{process.id}</p>}
+          <div className="mt-6 border-y border-[var(--border)] py-5">
+            <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-medium">Configured pilot traffic</p><p className="metadata mt-1">Saved configuration, capped at 50% in this form.</p></div><p className="text-2xl font-semibold tabular-nums text-[var(--accent)]">{traffic}%</p></div>
             <DeploySlider value={traffic} onChange={setTraffic} disabled={disabled} label="Configured traffic percentage" />
           </div>
-          <div className="mt-5 rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4">
-            <p className="flex items-center gap-2 text-sm font-semibold text-cyan-100"><ShieldAlert size={16} aria-hidden="true" /> Pilot request policy</p>
-            <ul className="mt-3 space-y-2 text-sm text-slate-300"><li>• Output mode: <strong>draft only</strong></li><li>• Human approval: <strong>required</strong></li><li>• Confidence threshold: <strong>85%</strong></li><li>• Creation selects the <strong>first eligible step</strong></li></ul>
-          </div>
-          <button onClick={() => void mutate('deploy')} disabled={disabled || !process || !eligibleSteps.length} className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 py-3 font-medium text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50">
-            {working === 'deploy' ? <Loader2 size={18} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Rocket size={18} aria-hidden="true" />}{working === 'deploy' ? 'Creating pilot…' : 'Create draft pilot'}
+          <button onClick={() => void mutate('deploy')} disabled={disabled || !process || !eligibleSteps.length} className="button-primary mt-6 w-full">
+            {working === 'deploy' && <Loader2 size={16} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />}{working === 'deploy' ? 'Creating pilot…' : 'Create draft pilot'}
           </button>
+          <p className="metadata mt-3 leading-5">Creating or approving a pilot saves a record only. Neither action starts a live worker.</p>
         </fieldset>
       </section>
-      <section aria-labelledby="approval-boundary" className="glass-card rounded-2xl p-6">
-        <h2 id="approval-boundary" className="text-xl font-semibold">Approval boundary</h2>
+      <section aria-labelledby="approval-boundary" className="surface-pad min-w-0 border-t border-[var(--border)] lg:border-l lg:border-t-0">
+        <SourceLabel>02 / Review the boundary</SourceLabel>
+        <h2 id="approval-boundary" className="mt-3 text-lg font-semibold">Approval boundary</h2>
+        <section aria-labelledby="pilot-request-policy" className="mt-5">
+          <h3 id="pilot-request-policy" className="text-sm font-semibold">Pilot request policy</h3>
+          <dl className="mt-3 divide-y divide-[var(--border)] text-sm"><PolicyRow label="Output mode" value="Draft only" /><PolicyRow label="Human approval" value="Required" /><PolicyRow label="Confidence threshold" value="85%" /><PolicyRow label="Creation enables" value="First eligible step" /></dl>
+        </section>
         {score ? <>
-          <p className="mt-2 text-sm text-slate-400">{score.recommendation}</p>
-          <div className="mt-6"><p className="text-sm font-medium text-slate-300">Available draft steps</p><div className="mt-3 flex flex-wrap gap-2">{eligibleSteps.map(step => <span key={step} className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1.5 text-sm text-cyan-100">{step}</span>)}</div></div>
-          <div className="mt-5"><p className="text-sm font-medium text-slate-300">Human-owned steps</p><div className="mt-3 flex flex-wrap gap-2">{score.blocked_steps.map(step => <span key={step} className="rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-sm text-amber-100">{step}</span>)}</div></div>
-        </> : <p className="mt-3 text-slate-400">{loading ? 'Loading policy…' : !hasLoaded ? 'Policy could not be loaded.' : !scores.length ? 'No scored workflows are available. Discover and score a workflow before creating a pilot.' : 'No eligible workflow is available for a draft pilot.'}</p>}
+          <p className="mt-5 text-sm leading-6 text-[var(--text-muted)]">{score.recommendation}</p>
+          <section className="mt-5"><h3 className="text-sm font-semibold">Available draft steps</h3><ul className="mt-3 space-y-3">{eligibleSteps.map((step, index) => <li key={step} className="flex flex-wrap items-start justify-between gap-2 text-sm"><span>{step}</span><StatusBadge tone={index === 0 ? 'success' : 'neutral'}>{index === 0 ? 'Enabled on creation' : 'Available'}</StatusBadge></li>)}</ul></section>
+          <section className="mt-5 border-t border-[var(--border)] pt-4"><h3 className="text-sm font-semibold text-[var(--warning)]">Human-owned steps</h3><ul className="mt-3 space-y-2 text-sm text-[var(--text-muted)]">{score.blocked_steps.length ? score.blocked_steps.map(step => <li key={step}>— {step}</li>) : <li>No blocked steps were reported. Human approval is still required.</li>}</ul></section>
+        </> : <p className="muted mt-5 text-sm leading-6">{loading ? 'Loading policy…' : !hasLoaded ? 'Policy could not be loaded.' : !scores.length ? 'No scored workflows are available. Discover and score a workflow before creating a pilot.' : 'No eligible workflow is available for a draft pilot.'}</p>}
       </section>
     </div>
-    <section aria-labelledby="agent-records" aria-busy={loading || Boolean(working)} className="glass-card rounded-2xl overflow-hidden">
-      <div className="flex items-center justify-between gap-4 border-b border-slate-800 p-6">
-        <div><h2 id="agent-records" className="text-xl font-semibold">Agent records</h2><p className="mt-1 text-sm text-slate-400">Statuses come from the backend lifecycle record. Running does not confirm a live worker.</p></div>
-        <button onClick={() => { if (!mutation.current) void load(); }} disabled={Boolean(working)} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm disabled:opacity-50"><Clock3 size={16} aria-hidden="true" />{refreshRequired ? 'Retry refresh' : 'Refresh records'}</button>
+    <section aria-labelledby="agent-records" aria-busy={loading || Boolean(working)} className="surface overflow-hidden">
+      <div className="surface-pad flex flex-wrap items-start justify-between gap-4 border-b border-[var(--border)]">
+        <div className="max-w-prose"><h2 id="agent-records" className="text-lg font-semibold">Agent records</h2><p className="metadata mt-2">Statuses come from the backend lifecycle record. Running does not confirm a live worker.</p></div>
+        <button onClick={() => { if (!mutation.current) void load(); }} disabled={Boolean(working)} className="button-secondary shrink-0"><Clock3 size={15} aria-hidden="true" />{refreshRequired ? 'Retry refresh' : 'Refresh records'}</button>
       </div>
-      <div className="divide-y divide-slate-800">
-        {agents.length ? agents.map(agent => <div key={agent.id} data-testid={`agent-record-${agent.id}`} role="group" aria-label={agent.name} className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="flex items-center gap-2"><p className="font-medium">{agent.name}</p><span className={`rounded-full border px-2 py-0.5 text-xs ${agent.status === 'running' ? 'border-green-400/30 bg-green-400/10 text-green-200' : agent.status === 'failed' ? 'border-red-400/30 bg-red-400/10 text-red-200' : 'border-slate-400/30 bg-slate-400/10 text-slate-200'}`}>{statusLabels[agent.status]}</span></div>
-            <p className="mt-1 text-sm text-slate-400">{agent.config.traffic_percentage}% configured traffic · {agent.config.mode} mode · {agent.config.enabled_steps.join(', ') || 'Default step selection'} · {agent.metrics.drafts_created ?? 0} recorded drafts</p>
-            {(agent.status === 'pending_approval' || agent.status === 'paused') && !canActivate(agent) && <p className="mt-1 text-sm text-amber-200">Approval and resume require draft or assisted mode with human approval enabled.</p>}
+      <div className="divide-y divide-[var(--border)]">
+        {agents.length ? agents.map(agent => <div key={agent.id} data-testid={`agent-record-${agent.id}`} role="group" aria-label={agent.name} className="surface-pad min-w-0">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row">
+            <div className="min-w-0"><div className="flex flex-wrap items-center gap-3"><p className="font-semibold">{agent.name}</p><StatusBadge tone={agent.status === 'running' ? 'success' : agent.status === 'failed' ? 'danger' : agent.status === 'pending_approval' ? 'warning' : 'neutral'}>{statusLabels[agent.status]}</StatusBadge></div><p className="mono metadata mt-2 break-all">{agent.id}</p></div>
+            <div className="flex flex-wrap items-start gap-2">
+              {agent.status === 'pending_approval' && <ActionButton label="Approve" icon={<Play size={15} aria-hidden="true" />} onClick={() => void mutate('approve', agent)} loading={working === `approve:${agent.id}`} disabled={disabled || !canActivate(agent)} />}
+              {agent.status === 'running' && <ActionButton label="Pause" icon={<Pause size={15} aria-hidden="true" />} onClick={() => void mutate('pause', agent)} loading={working === `pause:${agent.id}`} disabled={disabled} muted />}
+              {agent.status === 'paused' && <ActionButton label="Resume" icon={<Play size={15} aria-hidden="true" />} onClick={() => void mutate('resume', agent)} loading={working === `resume:${agent.id}`} disabled={disabled || !canActivate(agent)} />}
+              <button aria-label={`Remove ${agent.name}`} onClick={() => void mutate('remove', agent)} disabled={disabled} className="button-danger">{working === `remove:${agent.id}` ? <Loader2 size={16} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Trash2 size={16} aria-hidden="true" />}</button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            {agent.status === 'pending_approval' && <ActionButton label="Approve" icon={<Play size={15} aria-hidden="true" />} onClick={() => void mutate('approve', agent)} loading={working === `approve:${agent.id}`} disabled={disabled || !canActivate(agent)} />}
-            {agent.status === 'running' && <ActionButton label="Pause" icon={<Pause size={15} aria-hidden="true" />} onClick={() => void mutate('pause', agent)} loading={working === `pause:${agent.id}`} disabled={disabled} muted />}
-            {agent.status === 'paused' && <ActionButton label="Resume" icon={<Play size={15} aria-hidden="true" />} onClick={() => void mutate('resume', agent)} loading={working === `resume:${agent.id}`} disabled={disabled || !canActivate(agent)} />}
-            <button aria-label={`Remove ${agent.name}`} onClick={() => void mutate('remove', agent)} disabled={disabled} className="rounded-lg border border-slate-700 p-2.5 text-slate-400 hover:border-red-400 hover:text-red-300 disabled:opacity-50">{working === `remove:${agent.id}` ? <Loader2 size={16} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Trash2 size={16} aria-hidden="true" />}</button>
-          </div>
-        </div>) : <p className="p-6 text-sm text-slate-400">{loading ? 'Loading agent records…' : !hasLoaded ? 'Agent records could not be loaded.' : 'No pilot records have been created.'}</p>}
+          <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-[var(--border)] pt-4 lg:grid-cols-4"><RecordStat label="Configured traffic" value={`${agent.config.traffic_percentage}%`} /><RecordStat label="Output mode" value={`${agent.config.mode} mode`} /><RecordStat label="Human approval" value={agent.config.approval_required ? 'Required' : 'Not required'} /><RecordStat label="Recorded drafts" value={agent.metrics.drafts_created ?? 0} /></dl>
+          <p className="metadata mt-4"><span className="font-medium text-[var(--text)]">Enabled steps: </span>{agent.config.enabled_steps.join(', ') || 'Default step selection'}</p>
+          <p className="mono metadata mt-2 break-all">Created {agent.created_at}</p>
+          {(agent.status === 'pending_approval' || agent.status === 'paused') && !canActivate(agent) && <p className="mt-3 text-sm text-[var(--warning)]">Approval and resume require draft or assisted mode with human approval enabled.</p>}
+        </div>) : <p className="surface-pad muted text-sm">{loading ? 'Loading agent records…' : !hasLoaded ? 'Agent records could not be loaded.' : 'No pilot records have been created.'}</p>}
       </div>
     </section>
   </div>;
 }
 
+function PolicyRow({ label, value }: { label: string; value: string }) { return <div className="flex justify-between gap-4 py-2.5"><dt className="muted">{label}</dt><dd className="text-right font-medium">{value}</dd></div>; }
+function RecordStat({ label, value }: { label: string; value: string | number }) { return <div><dt className="metadata">{label}</dt><dd className="mt-1 text-sm font-medium tabular-nums">{value}</dd></div>; }
 function ActionButton({ label, icon, onClick, loading, disabled, muted = false }: { label: string; icon: ReactNode; onClick: () => void; loading: boolean; disabled: boolean; muted?: boolean }) {
-  return <button onClick={onClick} disabled={disabled} aria-busy={loading} className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50 ${muted ? 'border border-slate-700 text-slate-200 hover:bg-slate-800' : 'bg-cyan-500 text-slate-950 hover:bg-cyan-400'}`}>{loading ? <Loader2 size={15} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> : icon}{label}</button>;
+  return <button onClick={onClick} disabled={disabled} aria-busy={loading} className={muted ? 'button-secondary' : 'button-primary'}>{loading ? <Loader2 size={15} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> : icon}{label}</button>;
 }

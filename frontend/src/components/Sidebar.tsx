@@ -1,54 +1,54 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, MessageSquare, Activity, BarChart2, Rocket, TrendingUp, Sparkles, Share2, Boxes, Menu, Shield, Cpu } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Activity, BarChart2, Rocket, TrendingUp, FlaskConical, Share2, Boxes, Menu, PanelLeftClose, PanelLeftOpen, X, Cpu } from 'lucide-react';
 
-const Sidebar = () => {
-  const pathname = usePathname();
-  const [collapsed, setCollapsed] = React.useState(false);
-
-  const links = [
-    { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/archetypes', label: '5 Archetypes', icon: Shield },
-    { href: '/distillation', label: 'Distill Studio', icon: Cpu },
-    { href: '/social-deck', label: 'Social Studio', icon: Share2 },
-    { href: '/showcase', label: 'Motion Showcase', icon: Sparkles },
-    { href: '/channels', label: 'Channels', icon: MessageSquare },
-    { href: '/processes', label: 'Processes', icon: Activity },
+export const navigationGroups = [
+  { label: 'Workspace', links: [
+    { href: '/', label: 'Overview', icon: LayoutDashboard },
+    { href: '/channels', label: 'Sources', icon: MessageSquare },
+    { href: '/processes', label: 'Workflows', icon: Activity },
     { href: '/objects', label: 'Object Lens', icon: Boxes },
-    { href: '/scores', label: 'Scores', icon: BarChart2 },
-    { href: '/deploy', label: 'Deploy', icon: Rocket },
+    { href: '/scores', label: 'Opportunities', icon: BarChart2 },
+  ] },
+  { label: 'Operate', links: [
+    { href: '/deploy', label: 'Pilots', icon: Rocket },
     { href: '/performance', label: 'Performance', icon: TrendingUp },
-  ];
+  ] },
+  { label: 'Studio', links: [
+    { href: '/archetypes', label: 'Workflow Lab', icon: FlaskConical },
+    { href: '/distillation', label: 'Model Recipes', icon: Cpu },
+    { href: '/showcase', label: 'Simulation', icon: Activity },
+    { href: '/social-deck', label: 'Social Studio', icon: Share2 },
+  ] },
+];
 
-  return (
-    <aside className={`bg-gray-900 border-b border-slate-800 transition-all duration-300 w-full min-w-0 shrink-0 md:border-b-0 md:border-r ${collapsed ? 'md:w-20' : 'md:w-64'} flex flex-col md:h-full`}>
-      <div className="p-4 flex shrink-0 items-center justify-between">
-        {!collapsed && <span className="text-xl font-bold text-white tracking-wide">AutoPilot <span className="text-cyan-500">FDE</span></span>}
-        <button type="button" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} aria-controls="primary-navigation" onClick={() => setCollapsed(!collapsed)} className="text-gray-400 hover:text-white p-2 rounded-md hover:bg-gray-800">
-          <Menu size={20} aria-hidden="true" />
-        </button>
-      </div>
-      <nav id="primary-navigation" aria-label="Primary navigation" className="min-h-0 min-w-0 overflow-auto md:flex-1 md:mt-6">
-        <ul className="flex gap-2 px-3 pb-3 md:block md:space-y-2">
-          {links.map((link) => {
-            const Icon = link.icon;
-            const active = pathname === link.href;
-            return (
-              <li key={link.href} className="shrink-0">
-                <Link href={link.href} aria-label={link.label} aria-current={active ? 'page' : undefined} title={collapsed ? link.label : undefined} className={`flex items-center p-3 rounded-lg transition-colors ${active ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}>
-                  <Icon size={20} aria-hidden="true" className="shrink-0" />
-                  {!collapsed && <span className="ml-3 whitespace-nowrap font-medium">{link.label}</span>}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+export default function Sidebar() {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const menuRef = useRef<HTMLButtonElement>(null);
+  const closeDrawer = () => { dialogRef.current?.close(); setDrawerOpen(false); menuRef.current?.focus(); };
+  const openDrawer = () => { setDrawerOpen(true); dialogRef.current?.showModal(); };
+  const current = navigationGroups.flatMap(group => group.links).find(link => link.href === pathname)?.label;
+  const links = (mobile = false) => <nav id={mobile ? 'mobile-navigation' : 'primary-navigation'} aria-label={mobile ? 'Mobile navigation' : 'Primary navigation'} className="rail-navigation">
+    {navigationGroups.map(group => <div className="nav-group" key={group.label}><p className="nav-group-label">{group.label}</p><ul>{group.links.map(link => {
+      const Icon = link.icon;
+      return <li key={link.href}><Link href={link.href} aria-label={link.label} title={link.label} aria-current={pathname === link.href ? 'page' : undefined} onClick={mobile ? closeDrawer : undefined} className="rail-link"><Icon size={17} aria-hidden="true" /><span>{link.label}</span></Link></li>;
+    })}</ul></div>)}
+  </nav>;
+  return <>
+    <div className="mobile-header"><button ref={menuRef} type="button" aria-label="Open navigation" aria-haspopup="dialog" aria-expanded={drawerOpen} aria-controls="mobile-drawer" onClick={openDrawer}><Menu size={20} aria-hidden="true" /></button><span>AutoPilot <span className="muted">/ {current}</span></span></div>
+    <aside className={`app-rail ${collapsed ? 'is-collapsed' : ''}`}>
+      <div className="rail-brand"><span className="brand-word">AutoPilot<span className="brand-sub">FDE</span></span><button type="button" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} aria-controls="primary-navigation" onClick={() => setCollapsed(value => !value)}>{collapsed ? <PanelLeftOpen size={18} aria-hidden="true" /> : <PanelLeftClose size={18} aria-hidden="true" />}</button></div>
+      {links()}
+      <div className="rail-footnote"><span className="rail-footnote-dot" aria-hidden="true" /><span>Evidence before action</span></div>
     </aside>
-  );
-};
-
-export default Sidebar;
+    <dialog id="mobile-drawer" ref={dialogRef} aria-label="Workspace navigation" className="mobile-drawer" onCancel={event => { event.preventDefault(); closeDrawer(); }} onClick={event => { if (event.target === event.currentTarget) closeDrawer(); }} onClose={() => { setDrawerOpen(false); menuRef.current?.focus(); }}>
+      <div className="drawer-content"><div className="rail-brand"><span className="brand-word">AutoPilot<span className="brand-sub">FDE</span></span><button type="button" aria-label="Close navigation" onClick={closeDrawer}><X size={20} aria-hidden="true" /></button></div>{links(true)}<p className="drawer-note">Local-first workflow prototype</p></div>
+    </dialog>
+  </>;
+}

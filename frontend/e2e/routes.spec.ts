@@ -2,11 +2,11 @@ import type { Page } from '@playwright/test';
 import { test, expect, API, noHorizontalOverflow } from './fixtures';
 
 const routes = [
-  ['/', 'Evidence, then automation.'],
-  ['/archetypes', 'Enterprise Archetype Workbench'],
-  ['/distillation', 'Model Distillation Studio'],
-  ['/social-deck', 'Pixel-Perfect Social Carousel & Infographics'],
-  ['/showcase', 'AutoPilot FDE 2.0'],
+  ['/', 'Workspace overview'],
+  ['/archetypes', 'Workflow Lab'],
+  ['/distillation', 'Model Recipes'],
+  ['/social-deck', 'Social Studio'],
+  ['/showcase', 'Simulation'],
   ['/channels', 'Observation sources'],
   ['/processes', 'Process map'],
   ['/objects', 'Object Lens'],
@@ -51,7 +51,7 @@ async function navigateReady(page: Page, route: string) {
   } else if (route === '/performance') {
     const data = await (await reads[0]).json();
     if (data.length) for (const agent of data) await expect(page.getByText(agent.name, { exact: true }).first()).toBeVisible();
-    else await expect(page.getByText('No pilot agents yet. Create a limited draft pilot from the Deploy page.')).toBeVisible();
+    else await expect(page.getByText('No pilot agents yet.', { exact: true })).toBeVisible();
     await expect(page.getByText('Loading agent records…')).toHaveCount(0);
   }
 }
@@ -73,11 +73,11 @@ for (const [route, title] of routes) {
 test('sidebar remains named when collapsed and supports keyboard/back/forward', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /collapse.*(sidebar|navigation)/i }).click();
-  const processes = page.getByRole('navigation').getByRole('link', { name: 'Processes', exact: true });
+  const processes = page.getByRole('navigation').getByRole('link', { name: 'Workflows', exact: true });
   await processes.focus();
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL('/processes');
-  await page.getByRole('navigation').getByRole('link', { name: 'Scores', exact: true }).click();
+  await page.getByRole('navigation').getByRole('link', { name: 'Opportunities', exact: true }).click();
   await expect(page).toHaveURL('/scores');
   await page.goBack();
   await expect(page.getByRole('heading', { name: 'Process map', exact: true })).toBeVisible();
@@ -171,11 +171,11 @@ test('empty channel and score fixtures stop loading and explain the empty result
 test('showcase controls remain explicitly illustrative', async ({ page }) => {
   await page.goto('/showcase');
   await expect(page.getByText(/numbers and code samples below are illustrative fixtures/)).toBeVisible();
-  await page.getByRole('button', { name: 'LangGraph Code Synthesis', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Synthesized Python LangGraph State Machine' })).toBeVisible();
-  await page.getByRole('button', { name: /Verified Verification Matrix/ }).click();
-  await expect(page.getByText(/Verified Functional/).first()).toBeVisible();
-  await page.getByRole('button', { name: 'Monte Carlo Simulator', exact: true }).click();
+  await page.getByRole('button', { name: 'Example code', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Example Python LangGraph state machine' })).toBeVisible();
+  await page.getByRole('button', { name: 'Historical matrix' }).click();
+  await expect(page.getByRole('heading', { name: 'Historical verification examples' })).toBeVisible();
+  await page.getByRole('button', { name: 'Simulation inputs', exact: true }).click();
   await expect(page.getByRole('slider')).toBeVisible();
   await page.getByRole('slider').focus();
   await page.keyboard.press('ArrowRight');
@@ -200,17 +200,18 @@ test('social themes change locally and clipboard failure never claims success', 
 test('mobile navigation and alternate showcase/social panels stay reachable', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await navigateReady(page, '/');
-  const performance = page.getByRole('navigation').getByRole('link', { name: 'Performance', exact: true });
+  await page.getByRole('button', { name: 'Open navigation', exact: true }).click();
+  const performance = page.getByRole('dialog').getByRole('link', { name: 'Performance', exact: true });
   await performance.scrollIntoViewIfNeeded();
   await performance.click();
   await expect(page.getByRole('heading', { name: 'Pilot performance', exact: true })).toBeVisible();
   await noHorizontalOverflow(page);
   await page.goto('/showcase');
-  await page.getByRole('button', { name: 'LangGraph Code Synthesis', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Synthesized Python LangGraph State Machine' })).toBeVisible();
+  await page.getByRole('button', { name: 'Example code', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Example Python LangGraph state machine' })).toBeVisible();
   await noHorizontalOverflow(page);
-  await page.getByRole('button', { name: /Verified Verification Matrix/ }).click();
-  await expect(page.getByText(/Verified Functional/).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Historical matrix' }).click();
+  await expect(page.getByRole('heading', { name: 'Historical verification examples' })).toBeVisible();
   await noHorizontalOverflow(page);
   await page.goto('/social-deck');
   await page.getByRole('button', { name: '2. AutoPilot FDE: 4-Panel Editorial' }).click();
@@ -218,4 +219,66 @@ test('mobile navigation and alternate showcase/social panels stay reachable', as
   await page.getByRole('button', { name: '3. 5-Slide Master Pitch Deck' }).click();
   await expect(page.getByRole('button', { name: /Copy.*(Tweet|Post)/i }).first()).toBeVisible();
   await noHorizontalOverflow(page);
+});
+
+for (const width of [320, 768]) {
+  for (const [route, title] of routes) {
+    test(`compact ${width}px ${route} fits a short viewport`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 568 });
+      await navigateReady(page, route);
+      await expect(page.getByRole('heading', { level: 1, name: title, exact: true })).toBeVisible();
+      await noHorizontalOverflow(page);
+      if (width === 320) {
+        await page.getByRole('button', { name: 'Open navigation', exact: true }).click();
+        await expect(page.getByRole('dialog', { name: 'Workspace navigation' }).getByRole('link')).toHaveCount(11);
+        await page.keyboard.press('Escape');
+        await expect(page.getByRole('button', { name: 'Open navigation', exact: true })).toBeFocused();
+      } else {
+        await expect(page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: 'Workflow Lab', exact: true })).toBeVisible();
+      }
+    });
+  }
+}
+
+test('mobile drawer contains focus and dismisses by Escape, backdrop, and route selection', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto('/archetypes');
+  const open = page.getByRole('button', { name: 'Open navigation', exact: true });
+  await open.click();
+  const dialog = page.getByRole('dialog', { name: 'Workspace navigation' });
+  const close = dialog.getByRole('button', { name: 'Close navigation', exact: true });
+  await expect(close).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(dialog.getByRole('link', { name: 'Social Studio', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(close).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).not.toBeVisible();
+  await expect(open).toBeFocused();
+  await open.click();
+  await page.mouse.click(315, 280);
+  await expect(dialog).not.toBeVisible();
+  await expect(open).toBeFocused();
+  await open.click();
+  await dialog.getByRole('link', { name: 'Sources', exact: true }).click();
+  await expect(page).toHaveURL('/channels');
+  await expect(dialog).not.toBeVisible();
+  await expect(open).toBeFocused();
+});
+
+test('reduced motion and enlarged text preserve workbench controls and outcomes', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/archetypes');
+  await page.getByRole('tab', { name: 'Invoice checks', exact: true }).click();
+  await expect(page.getByRole('article', { name: 'Built-in sample invoice preview' })).toBeVisible();
+  const marker = page.locator('.tab-underline');
+  await expect(marker).toBeVisible();
+  expect(await page.evaluate(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.evaluate(() => { document.body.style.zoom = '2'; });
+  await noHorizontalOverflow(page);
+  await page.getByRole('checkbox', { name: 'Inject a sample $10 arithmetic discrepancy' }).check();
+  await page.getByRole('button', { name: 'Run Deterministic Audit', exact: true }).click();
+  await expect(page.getByText('Sample validation failed', { exact: true })).toBeVisible();
+  await expect(page.getByText('Difference = expected minus stated. This is an arithmetic check, not payment authorization.')).toBeVisible();
 });

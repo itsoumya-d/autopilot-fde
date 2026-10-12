@@ -64,11 +64,11 @@ describe('archetype workbench', () => {
     expect(screen.getByText(/Synthetic demo selected/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Search' }));
     expect(await screen.findByText('The sample architecture uses an event bus between services.')).toBeTruthy();
-    selectTab(/Intake-to-Resolution/);
+    selectTab(/Intake/);
     fireEvent.click(screen.getByRole('button', { name: 'Ingest Ticket' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Approve Sample Ticket' }));
     expect(await screen.findByText('Local demo confirmed the ticket is resolved.')).toBeTruthy();
-    selectTab(/Ops Command Center/);
+    selectTab(/Operations/);
     fireEvent.click(screen.getByRole('button', { name: 'Run Sample Incident' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Roll Back Sample Incident' }));
     expect(await screen.findByText('Local demo confirmed the synthetic incident was rolled back.')).toBeTruthy();
@@ -80,7 +80,7 @@ describe('archetype workbench', () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(ok(ticket)).mockReturnValueOnce(approval.promise);
     vi.stubGlobal('fetch', fetchMock);
     render(<ArchetypesPage />);
-    selectTab(/Intake-to-Resolution/);
+    selectTab(/Intake/);
     fireEvent.click(screen.getByRole('button', { name: 'Ingest Ticket' }));
     const approve = await screen.findByRole('button', { name: 'Approve Sample Ticket' });
     fireEvent.click(approve);
@@ -100,7 +100,7 @@ describe('archetype workbench', () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(ok(ticket)).mockResolvedValueOnce(fail(409, 'Stale approval')).mockResolvedValueOnce(ok(resolved));
     vi.stubGlobal('fetch', fetchMock);
     render(<ArchetypesPage />);
-    selectTab(/Intake-to-Resolution/);
+    selectTab(/Intake/);
     fireEvent.click(screen.getByRole('button', { name: 'Ingest Ticket' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Approve Sample Ticket' }));
     expect((await screen.findByRole('alert')).textContent).toContain('Stale approval');
@@ -116,7 +116,7 @@ describe('archetype workbench', () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(ok(incidentResult)).mockReturnValueOnce(rollback.promise);
     vi.stubGlobal('fetch', fetchMock);
     render(<ArchetypesPage />);
-    selectTab(/Ops Command Center/);
+    selectTab(/Operations/);
     fireEvent.click(screen.getByRole('button', { name: 'Run Sample Incident' }));
     const rollbackButton = await screen.findByRole('button', { name: 'Roll Back Sample Incident' });
     fireEvent.click(rollbackButton);
@@ -135,7 +135,7 @@ describe('archetype workbench', () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(ok(incidentResult)).mockResolvedValueOnce(fail(400, 'Invalid rollback token')).mockResolvedValueOnce(ok({ ...rollbackResult, incident: undefined }));
     vi.stubGlobal('fetch', fetchMock);
     render(<ArchetypesPage />);
-    selectTab(/Ops Command Center/);
+    selectTab(/Operations/);
     fireEvent.click(screen.getByRole('button', { name: 'Run Sample Incident' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Roll Back Sample Incident' }));
     expect((await screen.findByRole('alert')).textContent).toContain('Invalid rollback token');
@@ -182,9 +182,9 @@ describe('archetype workbench', () => {
     vi.stubGlobal('fetch', fetchMock);
     render(<ArchetypesPage />);
     fireEvent.click(screen.getByRole('button', { name: 'Search' }));
-    selectTab(/Document Intelligence/);
+    selectTab(/Invoice checks/);
     expect((fetchMock.mock.calls[0][1].signal as AbortSignal).aborted).toBe(true);
-    selectTab(/Knowledge RAG/);
+    selectTab(/Knowledge/);
     fireEvent.click(screen.getByRole('radio', { name: 'Synthetic demo (local)' }));
     fireEvent.click(screen.getByRole('button', { name: 'Search' }));
     expect(await screen.findByText('The sample architecture uses an event bus between services.')).toBeTruthy();
@@ -200,12 +200,12 @@ describe('archetype workbench', () => {
     vi.stubGlobal('fetch', vi.fn());
     render(<ArchetypesPage />);
     fireEvent.click(screen.getByRole('radio', { name: 'Synthetic demo (local)' }));
-    selectTab(/Document Intelligence/);
+    selectTab(/Invoice checks/);
     fireEvent.click(screen.getByRole('checkbox', { name: /Inject a sample/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Run Deterministic Audit' }));
     expect(await screen.findByText('Sample validation failed')).toBeTruthy();
     expect(screen.getByText(/differs from stated total/)).toBeTruthy();
-    selectTab(/Data Onboarding/);
+    selectTab(/Data onboarding/);
     fireEvent.click(screen.getByRole('button', { name: 'Process Sample CSV Batch' }));
     expect(await screen.findByText('Row 3: Missing mandatory customer_id')).toBeTruthy();
     expect(screen.getByText('Row 4: Negative annual spend')).toBeTruthy();
@@ -214,7 +214,7 @@ describe('archetype workbench', () => {
   it('renders no-incidents without offering rollback', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ok({ status: 'no_incidents', incidents: [] })));
     render(<ArchetypesPage />);
-    selectTab(/Ops Command Center/);
+    selectTab(/Operations/);
     fireEvent.click(screen.getByRole('button', { name: 'Run Sample Incident' }));
     expect(await screen.findByText('No incidents eligible for remediation were returned.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Roll Back Sample Incident' })).toBeNull();
@@ -222,15 +222,15 @@ describe('archetype workbench', () => {
 
   it('supports accessible keyboard tabs and reduced-motion transitions', () => {
     render(<ArchetypesPage />);
-    const first = screen.getByRole('tab', { name: /Knowledge RAG/ });
+    const first = screen.getByRole('tab', { name: /Knowledge/ });
     first.focus();
     fireEvent.keyDown(first, { key: 'ArrowRight' });
-    const second = screen.getByRole('tab', { name: /Intake-to-Resolution/ });
+    const second = screen.getByRole('tab', { name: /Intake/ });
     expect(document.activeElement).toBe(second);
     expect(second.getAttribute('aria-selected')).toBe('true');
     expect(screen.getByRole('tabpanel').getAttribute('aria-labelledby')).toBe(second.id);
     fireEvent.keyDown(second, { key: 'End' });
-    expect(document.activeElement).toBe(screen.getByRole('tab', { name: /Ops Command Center/ }));
+    expect(document.activeElement).toBe(screen.getByRole('tab', { name: /Operations/ }));
     fireEvent.keyDown(document.activeElement!, { key: 'Home' });
     expect(document.activeElement).toBe(first);
     expect(first.className).toContain('motion-reduce:transition-none');

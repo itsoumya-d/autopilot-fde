@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Cpu, DollarSign, ShieldCheck, Play, CheckCircle2, AlertCircle, FileCode, Sparkles } from 'lucide-react';
+import { FileCode, Play } from 'lucide-react';
+import { EmptyState, ErrorState, PageHeader, SectionHeader, SourceLabel, StatusBadge } from '@/components/Workspace';
 import { distillationApi, type DistillationJob, type ScrubPreview, type StudentModel, type TeacherModel } from '@/lib/distillation';
 
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : 'The request failed. Check the backend connection and try again.';
@@ -105,39 +106,17 @@ export default function DistillationPage() {
   };
 
   return (
-    <div className="space-y-8 max-w-6xl">
-      <div>
-        <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
-          <span className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-lg shadow-purple-500/20"><Cpu size={24} aria-hidden="true" /></span>
-          Model Distillation Studio
-        </h1>
-        <p className="text-slate-400 mt-2 text-sm max-w-3xl">Generate a dataset and local training recipes through your configured backend. This workflow does not call a teacher model, train a model, or deploy a service.</p>
-        <p className="text-cyan-300 mt-2 text-xs">Backend mode · No automatic demo fallback. Generated files stay on the backend filesystem.</p>
-      </div>
+    <div className="page-stack">
+      <PageHeader eyebrow="Studio / Model Recipes" title="Model Recipes" description="Generate a dataset and local training recipes through your configured backend. This workflow does not call a teacher model, train a model, or deploy a service." />
+      <SourceLabel>Backend mode · No automatic demo fallback. Generated files stay on the backend filesystem.</SourceLabel>
 
-      <section aria-labelledby="cost-heading" className="bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/30 rounded-2xl p-6 space-y-3">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider"><DollarSign size={16} aria-hidden="true" /> Illustrative Cost Estimate</div>
-            <h2 id="cost-heading" className="text-2xl font-extrabold text-white">${Math.abs(netSavings).toLocaleString()} / year {netSavings >= 0 ? 'potential savings' : 'additional cost'}</h2>
-            <p className="text-slate-400 text-xs">Assumed cloud API: ${annualTeacherCost.toLocaleString()}/yr · Assumed local inference: ${annualStudentCost.toLocaleString()}/yr.</p>
-          </div>
-          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 md:w-72">
-            <label htmlFor="monthly-volume" className="col-span-2 text-xs text-slate-400">Monthly volume</label>
-            <input id="monthly-volume" type="range" min="10000" max="500000" step="10000" value={monthlyVolume} onChange={(e) => setMonthlyVolume(Number(e.target.value))} className="min-w-0 w-full accent-emerald-500" />
-            <output htmlFor="monthly-volume" className="text-xs font-mono font-bold text-emerald-300 w-20 text-right">{monthlyVolume.toLocaleString()}</output>
-          </div>
-        </div>
-        <p className="text-xs text-slate-400">Assumptions: 1,500 tokens per operation, $5 per million tokens blended, and $120/month local inference. These are illustrative inputs, not live model prices. Excludes training, evaluation, engineering, and operations costs; equivalent model quality is not established.</p>
-      </section>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <section aria-labelledby="model-heading" className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 space-y-5">
-          <h2 id="model-heading" className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2"><Sparkles size={16} className="text-purple-400" aria-hidden="true" />1. Configure Recipe</h2>
-          <fieldset disabled={isGenerating} className="min-w-0 space-y-3 disabled:opacity-70">
+      <div className="workspace-grid">
+        <section aria-labelledby="model-heading" className="surface surface-pad space-y-5">
+          <div><p className="page-kicker">01 / Configuration</p><h2 id="model-heading" className="mt-2 text-lg font-semibold">Configure recipe</h2></div>
+          <fieldset disabled={isGenerating} className="min-w-0 space-y-5 disabled:opacity-70">
             <div>
-              <label htmlFor="teacher-model" className="text-xs font-semibold text-slate-400 block mb-1.5">Teacher model reference (metadata only)</label>
-              <select id="teacher-model" value={teacher} onChange={(e) => { setTeacher(e.target.value as TeacherModel); clearJobResult(); }} className="min-w-0 w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-purple-500">
+              <label htmlFor="teacher-model" className="label">Teacher model reference (metadata only)</label>
+              <select id="teacher-model" value={teacher} onChange={(e) => { setTeacher(e.target.value as TeacherModel); clearJobResult(); }} className="field">
                 <option value="gpt-4o">OpenAI GPT-4o</option>
                 <option value="claude-3-5-sonnet">Anthropic Claude 3.5 Sonnet</option>
                 <option value="deepseek-r1">DeepSeek-R1</option>
@@ -145,59 +124,77 @@ export default function DistillationPage() {
               </select>
             </div>
             <div>
-              <label htmlFor="student-model" className="text-xs font-semibold text-slate-400 block mb-1.5">Target student model</label>
-              <select id="student-model" value={student} onChange={(e) => { setStudent(e.target.value as StudentModel); clearJobResult(); }} className="min-w-0 w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-purple-500">
+              <label htmlFor="student-model" className="label">Target student model</label>
+              <select id="student-model" value={student} onChange={(e) => { setStudent(e.target.value as StudentModel); clearJobResult(); }} className="field">
                 <option value="Qwen/Qwen2.5-7B-Instruct">Qwen 2.5 7B Instruct</option>
                 <option value="meta-llama/Meta-Llama-3.1-8B-Instruct">Meta Llama 3.1 8B Instruct</option>
                 <option value="mistralai/Mistral-7B-Instruct-v0.3">Mistral 7B Instruct v0.3</option>
                 <option value="google/gemma-2-9b-it">Google Gemma 2 9B Instruct</option>
               </select>
             </div>
-            <div className="bg-slate-950/80 border border-purple-500/30 rounded-xl p-4 space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-purple-300 uppercase tracking-wider"><ShieldCheck size={16} aria-hidden="true" />Usage Attestations</div>
-              <div className="space-y-2 text-xs text-slate-300">
-                <label className="flex items-start gap-2 cursor-pointer"><input type="checkbox" checked={attestInternal} onChange={(e) => { setAttestInternal(e.target.checked); clearJobResult(); }} className="accent-purple-500 mt-0.5 rounded" /><span>I intend to use these artifacts for internal enterprise workflow automation.</span></label>
-                <label className="flex items-start gap-2 cursor-pointer"><input type="checkbox" checked={attestWaiver} onChange={(e) => { setAttestWaiver(e.target.checked); clearJobResult(); }} className="accent-purple-500 mt-0.5 rounded" /><span>I will not use these artifacts to develop or sell a competing general-purpose foundation model service.</span></label>
-              </div>
-              <p className="text-xs text-slate-400">These declarations do not grant a license or establish compliance. Review data rights, model/provider terms, and applicable obligations before using or training on the generated dataset.</p>
+            <div className="border-t border-[var(--border)] pt-5 space-y-3">
+              <h3 className="font-semibold">Usage attestations</h3>
+              <label className="flex cursor-pointer items-start gap-3 text-sm"><input type="checkbox" checked={attestInternal} onChange={(e) => { setAttestInternal(e.target.checked); clearJobResult(); }} className="mt-1 accent-[var(--accent)]" /><span>I intend to use these artifacts for internal enterprise workflow automation.</span></label>
+              <label className="flex cursor-pointer items-start gap-3 text-sm"><input type="checkbox" checked={attestWaiver} onChange={(e) => { setAttestWaiver(e.target.checked); clearJobResult(); }} className="mt-1 accent-[var(--accent)]" /><span>I will not use these artifacts to develop or sell a competing general-purpose foundation model service.</span></label>
+              <p className="metadata">These declarations do not grant a license or establish compliance. Review data rights, model/provider terms, and applicable obligations before using or training on the generated dataset.</p>
             </div>
-            <label className="flex items-start gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" checked={allowSynthetic} onChange={(e) => { setAllowSynthetic(e.target.checked); clearJobResult(); }} className="accent-purple-500 mt-0.5" /><span>Allow synthetic demo samples if no workspace evidence is available. Demo data is for testing the recipe workflow only.</span></label>
+            <label className="flex cursor-pointer items-start gap-3 border-t border-[var(--border)] pt-5 text-sm"><input type="checkbox" checked={allowSynthetic} onChange={(e) => { setAllowSynthetic(e.target.checked); clearJobResult(); }} className="mt-1 accent-[var(--accent)]" /><span>Allow synthetic demo samples if no workspace evidence is available. Demo data is for testing the recipe workflow only.</span></label>
           </fieldset>
         </section>
 
-        <section aria-labelledby="preview-heading" className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 space-y-4">
-          <h2 id="preview-heading" className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2"><ShieldCheck size={16} className="text-cyan-400" aria-hidden="true" />2. Pattern-Based Redaction Preview</h2>
-          <p id="preview-help" className="text-xs text-slate-400">Regex patterns can miss names and other personal or sensitive data. Review outputs manually. This preview is separate from the workspace dataset and does not certify anonymization or legal compliance.</p>
-          <div className="space-y-2">
-            <label htmlFor="preview-text" className="text-xs font-semibold text-slate-400">Sample operational text</label>
-            <textarea id="preview-text" aria-describedby="preview-help" value={previewText} onChange={(e) => updatePreviewText(e.target.value)} rows={3} className="min-w-0 w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono" />
-            <button onClick={handlePreviewScrub} disabled={isPreviewing || !previewText.trim()} className="px-3 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 rounded text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed">{isPreviewing ? 'Checking redactions…' : 'Test PII Sanitizer'}</button>
-          </div>
-          <div aria-live="polite" aria-busy={isPreviewing}>
-            {previewError && <p role="alert" className="text-sm text-rose-300 flex items-start gap-2"><AlertCircle size={16} className="shrink-0" aria-hidden="true" />{previewError}</p>}
-            {scrubbedResult && <div className="bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs space-y-1"><div className="text-slate-400">Backend preview ({scrubbedResult.redactions_count} pattern matches redacted):</div><p className="text-slate-200 font-mono text-[11px] whitespace-pre-wrap break-words">{scrubbedResult.scrubbed || '(Empty output)'}</p></div>}
-          </div>
-          <div className="pt-2 space-y-2">
-            <button onClick={handleExecuteDistill} disabled={isGenerating || !attestInternal || !attestWaiver} aria-describedby="generation-help" className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${isGenerating || !attestInternal || !attestWaiver ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 shadow-lg shadow-cyan-500/20'}`}>{isGenerating ? 'Generating dataset and recipes…' : <><Play size={16} aria-hidden="true" />Compile Dataset & Generate Training Recipes</>}</button>
-            <p id="generation-help" className="text-xs text-slate-400">Confirm both usage declarations to generate files from workspace process evidence. Review provenance and labels before training; workspace records may include seeded demo data.</p>
-            {isGenerating && <p role="status" className="text-xs text-cyan-300">Waiting for the backend to finish file generation. Leaving this page does not cancel backend work.</p>}
-            {jobError && <p role="alert" className="text-sm text-rose-300">{jobError} A lost response may leave a job on the backend; check its job list before retrying.</p>}
-          </div>
-        </section>
+        <aside className="inspector space-y-5" aria-label="Generation controls">
+          <div><p className="page-kicker">02 / Generate local files</p><h2 className="mt-2 text-lg font-semibold">Review before compiling</h2></div>
+          <dl className="space-y-4 text-sm">
+            <div className="flex flex-wrap justify-between gap-2 border-b border-[var(--border)] pb-3"><dt className="muted">Teacher reference</dt><dd className="mono break-all">{teacher}</dd></div>
+            <div className="space-y-2 border-b border-[var(--border)] pb-3"><dt className="muted">Student model</dt><dd className="mono break-all">{student}</dd></div>
+            <div className="flex flex-wrap justify-between gap-2"><dt className="muted">Synthetic sample fallback</dt><dd>{allowSynthetic ? 'Explicitly allowed' : 'Not allowed'}</dd></div>
+          </dl>
+          <p id="generation-help" className="muted text-sm">Confirm both usage declarations to generate files from workspace process evidence. Review provenance and labels before training; workspace records may include seeded demo data.</p>
+          <button onClick={handleExecuteDistill} disabled={isGenerating || !attestInternal || !attestWaiver} aria-describedby="generation-help" className="button-primary w-full">{isGenerating ? 'Generating dataset and recipes…' : <><Play size={16} className="shrink-0" aria-hidden="true" /><span>Compile Dataset &amp; Generate Training Recipes</span></>}</button>
+          {isGenerating && <p role="status" className="muted text-sm">Waiting for the backend to finish file generation. Leaving this page does not cancel backend work.</p>}
+          {jobError && <ErrorState>{jobError} A lost response may leave a job on the backend; check its job list before retrying.</ErrorState>}
+          <p className="metadata">This produces recipe files only. Model training, deployment, and quality evaluation are separate steps.</p>
+        </aside>
       </div>
 
-      {jobResult && <section aria-label="Generation result" aria-live="polite" className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 space-y-4">
-        <div className={`flex items-center gap-2 font-bold text-sm ${jobResult.status === 'completed' ? 'text-emerald-400' : 'text-cyan-300'}`}>
-          {jobResult.status === 'completed' && <CheckCircle2 size={18} aria-hidden="true" />}
-          {jobResult.status === 'completed' ? 'Dataset and recipes generated' : `Backend generation status: ${jobResult.status.replaceAll('_', ' ')}`}: {jobResult.id}
+      {jobResult && <section aria-label="Generation result" aria-live="polite" className="surface surface-pad space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h2 className="break-words text-lg font-semibold">{jobResult.status === 'completed' ? 'Dataset and recipes generated' : `Backend generation status: ${jobResult.status.replaceAll('_', ' ')}`}: {jobResult.id}</h2>
+          <StatusBadge tone={jobResult.status === 'completed' ? 'success' : 'warning'}>{jobResult.status.replaceAll('_', ' ')}</StatusBadge>
         </div>
         {jobResult.status === 'completed' ? <>
-          <p className={`text-sm font-semibold ${jobResult.used_synthetic_samples ? 'text-amber-300' : 'text-cyan-300'}`}>{jobResult.used_synthetic_samples ? 'Synthetic demo dataset: these samples are fabricated for testing.' : 'Source: workspace process evidence (which may include seeded demo records).'}</p>
-          <p className="text-xs text-slate-400">The backend reported {jobResult.sample_count} dataset rows and {jobResult.pii_scrubbed_count} pattern-based redactions. No model was trained or deployed. Inspect these backend-local files and validate the data, licenses, recipe, and model quality before running them.</p>
-          <p className="text-xs text-slate-400 break-all">Backend output directory: {jobResult.output_dir}</p>
-          <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">{jobResult.generated_recipe_files.map((file) => <li key={file} className="bg-slate-950 border border-slate-800 rounded-lg p-3 flex items-start gap-2 text-xs text-slate-300 font-mono"><FileCode size={16} className="text-cyan-400 shrink-0" aria-hidden="true" /><span className="break-all">{file}</span></li>)}</ul>
-        </> : <p className="text-xs text-slate-400">The backend has not confirmed completed files. Check the backend job record for progress.</p>}
+          <p className="text-sm font-medium">{jobResult.used_synthetic_samples ? 'Synthetic demo dataset: these samples are fabricated for testing.' : 'Source: workspace process evidence (which may include seeded demo records).'}</p>
+          <p className="muted text-sm">The backend reported {jobResult.sample_count} dataset rows and {jobResult.pii_scrubbed_count} pattern-based redactions. No model was trained or deployed. Inspect these backend-local files and validate the data, licenses, recipe, and model quality before running them.</p>
+          <p className="metadata break-all">Backend output directory: {jobResult.output_dir}</p>
+          <ul className="divide-y divide-[var(--border)] border-y border-[var(--border)]">{jobResult.generated_recipe_files.map((file) => <li key={file} className="flex items-start gap-3 py-3 text-sm"><FileCode size={16} className="mt-0.5 shrink-0 text-[var(--text-muted)]" aria-hidden="true" /><span className="mono break-all">{file}</span></li>)}</ul>
+        </> : <p className="muted text-sm">The backend has not confirmed completed files. Check the backend job record for progress.</p>}
       </section>}
+
+      <section aria-labelledby="preview-heading" className="surface surface-pad space-y-5">
+        <div><p className="page-kicker">Review tool / separate from generation</p><h2 id="preview-heading" className="mt-2 text-lg font-semibold">Pattern-based redaction preview</h2></div>
+        <p id="preview-help" className="muted max-w-3xl text-sm">Regex patterns can miss names and other personal or sensitive data. Review outputs manually. This preview is separate from the workspace dataset and does not certify anonymization or legal compliance.</p>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <div className="space-y-3">
+            <label htmlFor="preview-text" className="label">Sample operational text</label>
+            <textarea id="preview-text" aria-describedby="preview-help" value={previewText} onChange={(e) => updatePreviewText(e.target.value)} rows={5} className="field mono resize-y" />
+            <button onClick={handlePreviewScrub} disabled={isPreviewing || !previewText.trim()} className="button-secondary">{isPreviewing ? 'Checking redactions…' : 'Test PII Sanitizer'}</button>
+          </div>
+          <div aria-live="polite" aria-busy={isPreviewing} className="min-w-0">
+            <p className="label">Redaction output</p>
+            {previewError && <ErrorState>{previewError}</ErrorState>}
+            {scrubbedResult ? <div className="rounded-md border border-[var(--border)] bg-[var(--surface-subtle)] p-4"><div className="metadata mb-3">Backend preview ({scrubbedResult.redactions_count} pattern matches redacted):</div><p className="mono whitespace-pre-wrap break-words text-sm">{scrubbedResult.scrubbed || '(Empty output)'}</p></div> : !previewError && <EmptyState title={isPreviewing ? 'Checking the entered text…' : 'No preview yet'}>Run the pattern check to compare the returned text here.</EmptyState>}
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="cost-heading" className="border-t border-[var(--border)] pt-6 space-y-4">
+        <SectionHeader title="Illustrative estimate" description="A worksheet with fixed assumptions, separate from recipe generation." actions={<SourceLabel>Static coefficients</SourceLabel>} />
+        <div className="grid gap-6 md:grid-cols-2 md:items-center">
+          <div><h3 id="cost-heading" className="text-2xl font-semibold tabular-nums">${Math.abs(netSavings).toLocaleString()} / year {netSavings >= 0 ? 'potential savings' : 'additional cost'}</h3><p className="muted mt-2 text-sm">Assumed cloud API: ${annualTeacherCost.toLocaleString()}/yr · Assumed local inference: ${annualStudentCost.toLocaleString()}/yr.</p></div>
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-3"><label htmlFor="monthly-volume" className="label col-span-2">Monthly volume</label><input id="monthly-volume" type="range" min="10000" max="500000" step="10000" value={monthlyVolume} onChange={(e) => setMonthlyVolume(Number(e.target.value))} className="min-w-0 w-full accent-[var(--accent)]" /><output htmlFor="monthly-volume" className="mono text-sm">{monthlyVolume.toLocaleString()}</output></div>
+        </div>
+        <p className="metadata max-w-4xl">Assumptions: 1,500 tokens per operation, $5 per million tokens blended, and $120/month local inference. These are illustrative inputs, not live model prices. Excludes training, evaluation, engineering, and operations costs; equivalent model quality is not established.</p>
+      </section>
     </div>
   );
 }

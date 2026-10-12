@@ -86,6 +86,26 @@ describe('deployment lifecycle records', () => {
     ]);
   });
 
+  it('identifies the exact enabled step and preserves the configured traffic when creating', async () => {
+    const { mutations } = setup({ agents: [] });
+    render(<Deploy />);
+    await ready();
+    const enabledStep = screen.getByText('Enabled on creation').closest('li')!;
+    expect(within(enabledStep).getByText('Read context')).toBeTruthy();
+    const otherStep = screen.getByText('Draft reply').closest('li')!;
+    expect(within(otherStep).getByText('Available')).toBeTruthy();
+    const slider = screen.getByRole('slider', { name: 'Configured traffic percentage' });
+    expect(slider.getAttribute('max')).toBe('50');
+    fireEvent.change(slider, { target: { value: '35' } });
+    expect(slider.getAttribute('aria-valuetext')).toBe('35% configured traffic');
+    fireEvent.click(button('Create draft pilot'));
+    await screen.findByText('Pilot record created. Pending human approval; no worker was started.');
+    await ready();
+    const sent = JSON.parse(String(mutations()[0][1]?.body));
+    expect(sent.config).toEqual({ ...config, traffic_percentage: 35 });
+    expect(sent.config.enabled_steps).toEqual(['Read context']);
+  });
+
   it('labels all backend states and exposes only state-appropriate lifecycle actions', async () => {
     const statuses: AgentStatus[] = ['pending_approval', 'deploying', 'running', 'paused', 'stopped', 'failed'];
     setup({ agents: statuses.map(status => agent(status, status)) });

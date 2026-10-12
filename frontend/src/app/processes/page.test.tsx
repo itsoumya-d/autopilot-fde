@@ -2,15 +2,17 @@ import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import Processes from './page';
+import userEvent from '@testing-library/user-event';
 import type { APScore, Process } from '@/lib/api';
 
 // Isolate page state and API behavior; graph layout/interaction requires browser QA.
 vi.mock('@xyflow/react', () => ({
-  ReactFlow: ({ nodes, onNodeClick, children }: {
-    nodes: { id: string; data: { label: string; score?: number } }[];
+  ReactFlow: ({ nodes, edges, onNodeClick, children }: {
+    edges: unknown[];
+    nodes: { id: string; selected: boolean; data: { label: string; score?: number } }[];
     onNodeClick: (event: React.MouseEvent, node: { id: string }) => void;
     children: React.ReactNode;
-  }) => <div>{nodes.map(node => <button key={node.id} data-score={node.data.score} onClick={event => onNodeClick(event, node)}>Inspect {node.data.label}</button>)}{children}</div>,
+  }) => <div data-testid="workflow-graph" data-edge-count={edges.length}>{nodes.map(node => <button key={node.id} data-selected={node.selected} data-score={node.data.score} onClick={event => onNodeClick(event, node)}>Inspect {node.data.label}</button>)}{children}</div>,
   Background: () => null,
   Controls: () => null,
   Handle: () => null,
@@ -62,6 +64,30 @@ describe('Process map state', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Inspect Workflow second' }));
     expect(await selected('second')).toBeDefined();
     expect(screen.getByText('“Source second”')).toBeDefined();
+  });
+
+  it('provides keyboard-native workflow rows synchronized with the graph and inspector', async () => {
+    setup();
+    render(<Processes />);
+    await selected('first');
+    const second = screen.getByRole('button', { name: 'Workflow second 3 cases' });
+    expect(second.getAttribute('aria-pressed')).toBe('false');
+    second.focus();
+    await userEvent.keyboard('{Enter}');
+    expect(await selected('second')).toBeDefined();
+    expect(second.getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Inspect Workflow second' }).getAttribute('data-selected')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Inspect Workflow first' }).getAttribute('data-selected')).toBe('false');
+  });
+
+  it('shows source IDs without inventing edges between independent workflows', async () => {
+    setup();
+    render(<Processes />);
+    await selected('first');
+    expect(screen.getByText('Sources: message-1')).toBeTruthy();
+    expect(screen.getByText('Case first-case')).toBeTruthy();
+    expect(screen.getByTestId('workflow-graph').getAttribute('data-edge-count')).toBe('0');
+    expect(screen.getByText(/no dependencies are implied/)).toBeTruthy();
   });
 
   it('selects an available workflow when discovery removes the selection', async () => {

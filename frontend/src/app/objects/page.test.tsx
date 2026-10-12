@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Objects from './page';
 
@@ -79,6 +79,30 @@ describe('Object Lens page', () => {
     await user.click(cases);
     expect(cases.getAttribute('aria-pressed')).toBe('true');
     expect(all.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('clears an incompatible selected trace when the type filter changes', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(log), { status: 200 })));
+    render(<Objects />);
+    await userEvent.click(await screen.findByRole('button', { name: 'vendor:acme' }));
+    expect(await screen.findByText('Invoice received')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: /^case\s*1$/ }));
+    expect(screen.queryByText('Invoice received')).toBeNull();
+    expect(screen.queryByText('vendor:acme')).toBeNull();
+    expect(screen.getByText('Select an object to see its chronological events.')).toBeTruthy();
+  });
+
+  it('retains a compatible selected trace and shows full related IDs and evidence', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(log), { status: 200 })));
+    render(<Objects />);
+    await userEvent.click(await screen.findByRole('button', { name: 'vendor:acme' }));
+    await userEvent.click(screen.getByRole('button', { name: /^vendor\s*1$/ }));
+    const trace = within(screen.getByRole('complementary'));
+    expect(trace.getByRole('heading', { name: 'vendor:acme' })).toBeTruthy();
+    expect(trace.getByText('vendor Acme $500')).toBeTruthy();
+    expect(trace.getAllByText('case:c1').length).toBeGreaterThan(0);
+    expect(trace.getByText('Event e1')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'vendor:acme' }).getAttribute('aria-pressed')).toBe('true');
   });
 
   it('announces loading while awaiting an object log', () => {

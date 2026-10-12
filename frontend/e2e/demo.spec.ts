@@ -20,7 +20,7 @@ test('demonstration: genuine invoice recovery and final resolved refund ticket',
     // pauses are added locally after retrieval, disclosed as editing pauses.
     if (recording) await page.waitForTimeout(2_000);
   };
-  await openWorkbench(page, '3. Document Intelligence');
+  await openWorkbench(page, 'Invoice checks');
   await expect(page.getByText(/Connected API selected\. Results appear only after/)).toBeVisible();
   await shot('Connected API; synthetic fixture boundary');
   await page.getByRole('checkbox', { name: 'Inject a sample $10 arithmetic discrepancy' }).check();
@@ -35,7 +35,7 @@ test('demonstration: genuine invoice recovery and final resolved refund ticket',
   await page.getByText('Sample arithmetic checks passed', { exact: true }).scrollIntoViewIfNeeded();
   await expect(page.getByText('Sample arithmetic checks passed', { exact: true })).toBeInViewport();
   await shot('Corrected invoice passes');
-  await page.getByRole('tab', { name: '2. Intake-to-Resolution', exact: true }).click();
+  await page.getByRole('tab', { name: 'Intake', exact: true }).click();
   await expect(page.getByLabel('Sample ticket content')).toHaveValue('Urgent: need refund of $450 on corporate billing');
   await page.getByLabel('Sample ticket content').scrollIntoViewIfNeeded();
   await expect(page.getByLabel('Sample ticket content')).toBeInViewport();
