@@ -26,7 +26,7 @@ jobs:
       NEXT_TELEMETRY_DISABLED: '1'
       NEXT_PUBLIC_API_URL: http://127.0.0.1:8000/api
       # One explicitly approved run only; future runs and reruns cannot upload.
-      AUTOPILOT_RECORD_DEMO: ${{ github.repository == 'itsoumya-d/autopilot-fde' && github.event.pull_request.number == 8 && github.run_number == 4 && github.run_attempt == 1 && '1' || '0' }}
+      AUTOPILOT_RECORD_DEMO: ${{ github.repository == 'itsoumya-d/autopilot-fde' && github.event.pull_request.number == 8 && github.run_number == 5 && github.run_attempt == 1 && '1' || '0' }}
       AUTOPILOT_BROWSER_CHANNEL: chrome
     steps:
       - name: Check out the candidate

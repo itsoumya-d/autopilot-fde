@@ -55,3 +55,32 @@ def test_duplicate_recordings_refused(tmp_path):
     with pytest.raises(ValueError, match='exactly one'):
         package.package_recording(results, output)
     assert not output.exists()
+
+
+def test_empty_recording_has_specific_diagnostic(tmp_path):
+    results, output = fixture_files(tmp_path)
+    (results / 'video.webm').write_bytes(b'')
+    with pytest.raises(ValueError, match='Video is empty'):
+        package.package_recording(results, output)
+    assert not output.exists()
+
+
+def test_large_recording_reports_exact_size(tmp_path, monkeypatch):
+    results, output = fixture_files(tmp_path)
+    monkeypatch.setattr(package, 'MAX_ARCHIVE_BYTES', 2)
+    monkeypatch.setattr(package.shutil, 'which', lambda name: None)
+    with pytest.raises(ValueError, match='Raw video is 28 bytes'):
+        package.package_recording(results, output)
+    assert not output.exists()
+
+
+def test_existing_encoder_failure_prevents_upload(tmp_path, monkeypatch):
+    results, output = fixture_files(tmp_path)
+    monkeypatch.setattr(package, 'MAX_ARCHIVE_BYTES', 2)
+    monkeypatch.setattr(package.shutil, 'which', lambda name: '/usr/bin/ffmpeg')
+    def fail(*args, **kwargs):
+        raise package.subprocess.CalledProcessError(1, 'ffmpeg')
+    monkeypatch.setattr(package.subprocess, 'run', fail)
+    with pytest.raises(package.subprocess.CalledProcessError):
+        package.package_recording(results, output)
+    assert not output.exists()

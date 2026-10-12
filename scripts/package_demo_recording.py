@@ -1,5 +1,7 @@
 """Package one verified recording; enforce the exact upload bytes before upload."""
 import json
+import shutil
+import subprocess
 from pathlib import Path
 import zipfile
 
@@ -17,13 +19,33 @@ def package_recording(results: Path, output: Path) -> int:
             and evidence.get('externalActions') is False
             and len(evidence.get('shots', [])) == 6):
         raise ValueError('Recording evidence did not confirm the completed synthetic flow')
-    if not 0 < videos[0].stat().st_size <= MAX_ARCHIVE_BYTES:
-        raise ValueError('Video is empty or exceeds the approved upload bound')
+    raw_size = videos[0].stat().st_size
+    print(f'Raw recording size: {raw_size} bytes')
+    if raw_size == 0:
+        raise ValueError('Video is empty; upload is forbidden')
+    video = videos[0]
+    archive_name = 'demo.webm'
+    if raw_size > MAX_ARCHIVE_BYTES:
+        encoder = shutil.which('ffmpeg')
+        if encoder is None:
+            raise ValueError(f'Raw video is {raw_size} bytes, above the {MAX_ARCHIVE_BYTES} bound; no installed ffmpeg')
+        video = videos[0].with_name('demo-compressed.mp4')
+        # Only an already-installed standard encoder; no download or install.
+        # Preserve the full captured frame, duration and genuine action order.
+        subprocess.run([encoder, '-hide_banner', '-loglevel', 'error', '-y',
+                        '-i', str(videos[0]), '-an', '-c:v', 'libx264', '-preset', 'medium',
+                        '-crf', '22', '-maxrate', '300k', '-bufsize', '600k',
+                        '-pix_fmt', 'yuv420p', '-movflags', '+faststart', str(video)],
+                       check=True, timeout=180)
+        archive_name = 'demo.mp4'
+        print(f'Compressed recording size: {video.stat().st_size} bytes')
+        if not 0 < video.stat().st_size <= MAX_ARCHIVE_BYTES:
+            raise ValueError('Compressed recording exceeds approved bound; no upload')
     output.parent.mkdir(parents=True, exist_ok=True)
     # Exact ZIP is constructed here. upload-artifact archive:false uploads these
     # bytes without wrapping them in another archive or including any other file.
     with zipfile.ZipFile(output, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
-        archive.write(videos[0], 'demo.webm')
+        archive.write(video, archive_name)
         archive.write(evidence_files[0], 'evidence.json')
     size = output.stat().st_size
     if not 0 < size <= MAX_ARCHIVE_BYTES:

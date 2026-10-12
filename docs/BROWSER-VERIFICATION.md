@@ -118,7 +118,7 @@ provider calls are configured. Review any future integration tests separately.
 
 The owner approved up to US$1 attributable recording storage, one artifact of at
 most 5,000,000 bytes including archive overhead, and one-day retention. The sole
-exception is this repository's PR #8, browser workflow run number 4, attempt 1.
+exception is this repository's PR #8, browser workflow run number 5, attempt 1.
 All later runs and reruns keep recording/upload disabled. This is not a general
 storage authorization or an account-wide invoice limit.
 
@@ -131,3 +131,9 @@ No plan, budget, payment credentials, or security settings are changed. If the
 one-shot slot is missed or upload is blocked, stop and report rather than widen
 the guard or automatically rerun. Verify retained size/expiry and retrieve the
 real footage promptly for visual inspection before claiming a video deliverable.
+
+The first recording attempt passed all 46 browser checks but failed the raw
+size gate before upload; no artifact was retained. The authorized replacement
+uses short captured holds and adds disclosed caption-reading pauses after
+retrieval. It logs exact raw size and can compress with already-installed
+FFmpeg only; no installer or security change is used for that fallback.
