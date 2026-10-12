@@ -50,6 +50,18 @@ describe('Sidebar navigation accessibility', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }));
     expect(nav.getByRole('link', { name: 'Sources' }).getAttribute('aria-current')).toBe('page');
   });
+  it('wraps keyboard focus at both mobile drawer edges', async () => {
+    render(<Sidebar />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+    const dialog = screen.getByRole('dialog', { name: 'Workspace navigation' });
+    const first = within(dialog).getByRole('button', { name: 'Close navigation' });
+    const last = within(dialog).getByRole('link', { name: 'Social Studio' });
+    first.focus();
+    fireEvent.keyDown(first, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(last);
+    fireEvent.keyDown(last, { key: 'Tab' });
+    expect(document.activeElement).toBe(first);
+  });
   it('opens a named native modal and restores focus after cancel, backdrop, and navigation', async () => {
     render(<Sidebar />);
     const menu = screen.getByRole('button', { name: 'Open navigation' });

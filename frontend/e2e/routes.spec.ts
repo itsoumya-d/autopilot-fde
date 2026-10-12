@@ -192,7 +192,8 @@ test('social themes change locally and clipboard failure never claims success', 
   await expect(page.getByRole('main').getByRole('alert')).toBeVisible();
   await expect(page.getByText('Copied!', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: '2. AutoPilot FDE: 4-Panel Editorial' }).click();
-  await expect(page.getByText(/AutoPilot/).first()).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Four-panel editorial preview' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Evidence before automation', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '3. 5-Slide Master Pitch Deck' }).click();
   await expect(page.getByRole('button', { name: /Copy.*(Tweet|Post)/i }).first()).toBeVisible();
 });

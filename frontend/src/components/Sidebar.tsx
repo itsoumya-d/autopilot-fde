@@ -33,6 +33,18 @@ export default function Sidebar() {
   const menuRef = useRef<HTMLButtonElement>(null);
   const closeDrawer = () => { dialogRef.current?.close(); setDrawerOpen(false); menuRef.current?.focus(); };
   const openDrawer = () => { setDrawerOpen(true); dialogRef.current?.showModal(); };
+  const containDrawerFocus = (event: React.KeyboardEvent<HTMLDialogElement>) => {
+    if (event.key !== 'Tab') return;
+    const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), a[href]'));
+    const first = controls[0];
+    const last = controls[controls.length - 1];
+    if (!first || !last) return;
+    if (event.shiftKey && (document.activeElement === first || document.activeElement === event.currentTarget)) {
+      event.preventDefault(); last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault(); first.focus();
+    }
+  };
   const current = navigationGroups.flatMap(group => group.links).find(link => link.href === pathname)?.label;
   const links = (mobile = false) => <nav id={mobile ? 'mobile-navigation' : 'primary-navigation'} aria-label={mobile ? 'Mobile navigation' : 'Primary navigation'} className="rail-navigation">
     {navigationGroups.map(group => <div className="nav-group" key={group.label}><p className="nav-group-label">{group.label}</p><ul>{group.links.map(link => {
@@ -47,7 +59,7 @@ export default function Sidebar() {
       {links()}
       <div className="rail-footnote"><span className="rail-footnote-dot" aria-hidden="true" /><span>Evidence before action</span></div>
     </aside>
-    <dialog id="mobile-drawer" ref={dialogRef} aria-label="Workspace navigation" className="mobile-drawer" onCancel={event => { event.preventDefault(); closeDrawer(); }} onClick={event => { if (event.target === event.currentTarget) closeDrawer(); }} onClose={() => { setDrawerOpen(false); menuRef.current?.focus(); }}>
+    <dialog id="mobile-drawer" ref={dialogRef} aria-label="Workspace navigation" className="mobile-drawer" onKeyDown={containDrawerFocus} onCancel={event => { event.preventDefault(); closeDrawer(); }} onClick={event => { if (event.target === event.currentTarget) closeDrawer(); }} onClose={() => { setDrawerOpen(false); menuRef.current?.focus(); }}>
       <div className="drawer-content"><div className="rail-brand"><span className="brand-word">AutoPilot<span className="brand-sub">FDE</span></span><button type="button" aria-label="Close navigation" onClick={closeDrawer}><X size={20} aria-hidden="true" /></button></div>{links(true)}<p className="drawer-note">Local-first workflow prototype</p></div>
     </dialog>
   </>;

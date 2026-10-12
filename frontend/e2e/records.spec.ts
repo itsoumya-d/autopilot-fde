@@ -24,7 +24,7 @@ test('live pilot record lifecycle changes records without starting a worker', as
   await page.getByRole('navigation').getByRole('link', { name: 'Performance', exact: true }).click();
   await expect(page.getByText(created.name, { exact: true }).first()).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Illustrative pilot trend' })).toBeVisible();
-  await page.getByRole('navigation').getByRole('link', { name: 'Deploy', exact: true }).click();
+  await page.getByRole('navigation').getByRole('link', { name: 'Pilots', exact: true }).click();
   await page.getByTestId(`agent-record-${created.id}`).getByRole('button', { name: `Remove ${created.name}`, exact: true }).click();
   await expect(page.getByText('Agent record removed.', { exact: true })).toBeVisible();
   const saved = await (await request.get(`${API}/agents/`)).json();
