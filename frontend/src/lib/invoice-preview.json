@@ -1,0 +1,13 @@
+{
+  "invoice_id": "INV-2026-8891",
+  "vendor": "Acme Cloud Infrastructure LLC",
+  "date": "2026-09-10",
+  "line_items": [
+    {"description": "Dedicated GPU Compute Cluster (A100 x 4)", "quantity": 2, "unit_price": 1200, "total": 2400},
+    {"description": "High-Speed VPC Peering & Egress Bandwidth", "quantity": 1, "unit_price": 450, "total": 450},
+    {"description": "Enterprise SLA 24/7 Support Tier", "quantity": 1, "unit_price": 350, "total": 350}
+  ],
+  "subtotal": 3200,
+  "tax": 256,
+  "total_amount": 3456
+}
