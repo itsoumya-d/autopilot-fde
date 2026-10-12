@@ -1,4 +1,5 @@
 import { performance } from 'node:perf_hooks';
+import { writeFile } from 'node:fs/promises';
 import { test, expect, API, openWorkbench } from './fixtures';
 
 // Recording is opt-in. The default CI job retains/uploads NOTHING. A recording
@@ -10,37 +11,42 @@ test.use({
 });
 
 test('demonstration: genuine invoice recovery and final resolved refund ticket', async ({ page }, testInfo) => {
-  test.setTimeout(60_000);
+  test.setTimeout(recording ? 150_000 : 60_000);
   const start = performance.now();
   const shots: Array<{ label: string; milliseconds: number }> = [];
-  const shot = async (label: string) => {
+  const shot = async (label: string, holdSeconds: number) => {
     shots.push({ label, milliseconds: Math.round(performance.now() - start) });
     // Readability pauses only for an explicitly requested real test recording.
-    if (recording) await page.waitForTimeout(2_000);
+    if (recording) await page.waitForTimeout(holdSeconds * 1_000);
   };
   await openWorkbench(page, '3. Document Intelligence');
   await expect(page.getByText(/Connected API selected\. Results appear only after/)).toBeVisible();
-  await shot('Connected API; synthetic fixture boundary');
+  await shot('Connected API; synthetic fixture boundary', 10);
   await page.getByRole('checkbox', { name: 'Inject a sample $10 arithmetic discrepancy' }).check();
   const invalidResponse = page.waitForResponse(`${API}/archetypes/project3/validate-invoice`);
   await page.getByRole('button', { name: 'Run Deterministic Audit', exact: true }).click();
   expect((await (await invalidResponse).json()).math_delta).toBe(-10);
-  await expect(page.getByText('Sample validation failed', { exact: true })).toBeVisible();
-  await shot('Actual invoice failure; ten-dollar discrepancy');
+  await page.getByText('Sample validation failed', { exact: true }).scrollIntoViewIfNeeded();
+  await expect(page.getByText('Sample validation failed', { exact: true })).toBeInViewport();
+  await shot('Actual invoice failure; ten-dollar discrepancy', 15);
   await page.getByRole('checkbox', { name: 'Inject a sample $10 arithmetic discrepancy' }).uncheck();
   await page.getByRole('button', { name: 'Run Deterministic Audit', exact: true }).click();
-  await expect(page.getByText('Sample arithmetic checks passed', { exact: true })).toBeVisible();
-  await shot('Corrected invoice passes');
+  await page.getByText('Sample arithmetic checks passed', { exact: true }).scrollIntoViewIfNeeded();
+  await expect(page.getByText('Sample arithmetic checks passed', { exact: true })).toBeInViewport();
+  await shot('Corrected invoice passes', 12);
   await page.getByRole('tab', { name: '2. Intake-to-Resolution', exact: true }).click();
   await expect(page.getByLabel('Sample ticket content')).toHaveValue('Urgent: need refund of $450 on corporate billing');
-  await shot('Synthetic refund input');
+  await page.getByLabel('Sample ticket content').scrollIntoViewIfNeeded();
+  await expect(page.getByLabel('Sample ticket content')).toBeInViewport();
+  await shot('Synthetic refund input', 12);
   const ingestedResponse = page.waitForResponse(`${API}/archetypes/project2/ticket`);
   await page.getByRole('button', { name: 'Ingest Ticket', exact: true }).click();
   const pending = await (await ingestedResponse).json();
   expect(pending.status).toBe('pending_approval');
   await expect(page.getByText(pending.id, { exact: true })).toBeVisible();
-  await expect(page.getByText('pending_approval', { exact: true })).toBeVisible();
-  await shot('Same ticket awaits review');
+  await page.getByText('pending_approval', { exact: true }).scrollIntoViewIfNeeded();
+  await expect(page.getByText('pending_approval', { exact: true })).toBeInViewport();
+  await shot('Same ticket awaits review', 18);
   const approvedResponse = page.waitForResponse(`${API}/archetypes/project2/approve`);
   await page.getByRole('button', { name: 'Approve Sample Ticket', exact: true }).click();
   const resolved = await (await approvedResponse).json();
@@ -48,15 +54,18 @@ test('demonstration: genuine invoice recovery and final resolved refund ticket',
   expect(resolved.status).toBe('resolved');
   expect(resolved.approval_token).toBeNull();
   await expect(page.getByText(pending.id, { exact: true })).toBeVisible();
-  await expect(page.getByText('API confirmed the ticket is resolved.', { exact: true })).toBeVisible();
+  await page.getByText('API confirmed the ticket is resolved.', { exact: true }).scrollIntoViewIfNeeded();
+  await expect(page.getByText('API confirmed the ticket is resolved.', { exact: true })).toBeInViewport();
   await expect(page.getByRole('button', { name: 'Approve Sample Ticket', exact: true })).toHaveCount(0);
-  await shot('Confirmed resolved ticket; no refund issued');
+  await expect(page.getByText(pending.id, { exact: true })).toBeInViewport();
+  await shot('Confirmed resolved ticket; no refund issued', 25);
+  const evidencePath = testInfo.outputPath('demonstration-evidence.json');
+  await writeFile(evidencePath, JSON.stringify({
+    recording, source: 'Real browser UI and real API in this isolated test runner',
+    synthetic: true, ticketId: resolved.id, finalStatus: resolved.status,
+    externalActions: false, shots, sourceCommit: process.env.GITHUB_SHA ?? null,
+  }, null, 2));
   await testInfo.attach('demonstration-evidence.json', {
-    body: JSON.stringify({
-      recording, source: 'Real browser UI and real API in this isolated test runner',
-      synthetic: true, ticketId: resolved.id, finalStatus: resolved.status,
-      externalActions: false, shots,
-    }, null, 2),
-    contentType: 'application/json',
+    path: evidencePath, contentType: 'application/json',
   });
 });

@@ -50,3 +50,6 @@ htmlcov/
 # Browser regression output (synthetic test data only)
 frontend/browser-test-results/
 frontend/browser-report/
+
+# Bounded one-shot recording output; never commit generated media.
+demo-capture/

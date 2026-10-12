@@ -25,7 +25,8 @@ jobs:
     env:
       NEXT_TELEMETRY_DISABLED: '1'
       NEXT_PUBLIC_API_URL: http://127.0.0.1:8000/api
-      AUTOPILOT_RECORD_DEMO: '0'
+      # One explicitly approved run only; future runs and reruns cannot upload.
+      AUTOPILOT_RECORD_DEMO: ${{ github.repository == 'itsoumya-d/autopilot-fde' && github.event.pull_request.number == 8 && github.run_number == 4 && github.run_attempt == 1 && '1' || '0' }}
       AUTOPILOT_BROWSER_CHANNEL: chrome
     steps:
       - name: Check out the candidate
@@ -59,11 +60,26 @@ jobs:
             await browser.close();
           })().catch(error => { console.error(error); process.exitCode = 1; });
           JS
+      - name: Install official recording encoder for the approved one-shot run
+        if: env.AUTOPILOT_RECORD_DEMO == '1'
+        working-directory: frontend
+        run: npx --no-install playwright install ffmpeg
       - name: Build production frontend
         working-directory: frontend
         run: npm run build
       - name: Run real-browser regression suite
         working-directory: frontend
         run: npm run test:e2e
-      # Deliberately no upload-artifact, cache, external storage, Pages, or
-      # deployment step. Reports stay ephemeral. Video recording is disabled.
+      - name: Package and enforce exact approved recording size
+        if: env.AUTOPILOT_RECORD_DEMO == '1'
+        run: python scripts/package_demo_recording.py
+      - name: Upload the one approved bounded recording
+        if: env.AUTOPILOT_RECORD_DEMO == '1'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          path: demo-capture/AutoPilot-recording.zip
+          archive: false
+          retention-days: 1
+          if-no-files-found: error
+          overwrite: false
+      # No cache, extra artifact, automatic retry, external storage or deployment.

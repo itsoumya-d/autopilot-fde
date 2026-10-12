@@ -56,10 +56,10 @@ References: [supported channels](https://playwright.dev/docs/browsers#google-chr
 
 The standard public Actions job has read-only repository permission, disables
 persistent checkout credentials, and uses pinned official setup actions. It has
-no secret inputs, artifact uploads, persistent caches, paid services or deployment
-steps. Existing CI also uses read-only checkout and disables cache use for PR events;
-main-push cache behavior is preserved. Recording is off. Reports remain ephemeral; normal CI logs show test
-results. Do not embed media in logs or substitute another storage service.
+no secret inputs, persistent caches or deployment steps. Normal runs upload
+no artifacts; the explicitly approved one-run exception is described below. Existing CI also uses read-only checkout and disables cache use for PR events;
+main-push cache behavior is preserved. Normal recording is off. Reports remain
+ephemeral except for the bounded one-run recording; normal CI logs show test results. Do not embed media in logs or substitute another storage service.
 
 ## UI coverage matrix
 
@@ -81,7 +81,8 @@ results. Do not embed media in logs or substitute another storage service.
 Component regressions also cover states difficult to create with ordinary seed
 data. Do not mark an unexecuted case as passed. Coverage is bounded by the tests,
 browser, viewport, inputs and actual CI result. Inspect failed screenshots only
-on a separately approved retention/download path; none is configured here.
+on a separately approved retention/download path. The one-run recording below
+uploads only its video/evidence ZIP, never failure screenshots.
 
 ## Optional genuine demo recording
 
@@ -90,8 +91,7 @@ invoice discrepancy, corrects it, then ingests and approves a synthetic refund,
 ending with the same ticket ID visibly resolved. It never synthesizes UI success.
 
 With separately reviewed recording/retention, `AUTOPILOT_RECORD_DEMO=1` enables
-Playwright video and short readability holds. The default workflow neither
-enables recording nor uploads files. A supported retention/download path must
+Playwright video and short readability holds. Normal workflow runs neither enable recording nor upload files. A supported retention/download path must
 be cleared before promising a deliverable. Video is usable only after context
 shutdown, retrieval and visual inspection. Captions and owner-supplied audio
 can then be edited over genuine footage. The tests do not clone a voice.
@@ -113,3 +113,21 @@ The HTTP(S) browser route guard is a diagnostic, not a network sandbox. Service
 Workers are blocked; it does not prove backend/API-client/WebSocket isolation.
 All authored API requests use fixed loopback URLs; no external credentials or
 provider calls are configured. Review any future integration tests separately.
+
+## Approved one-shot recording
+
+The owner approved up to US$1 attributable recording storage, one artifact of at
+most 5,000,000 bytes including archive overhead, and one-day retention. The sole
+exception is this repository's PR #8, browser workflow run number 4, attempt 1.
+All later runs and reruns keep recording/upload disabled. This is not a general
+storage authorization or an account-wide invoice limit.
+
+The completed demo's video and evidence are packaged into one ZIP. The packager
+checks the finished ZIP against the exact byte cap before any upload. Official
+upload-artifact v7 uses `archive: false`, so it sends that single ZIP unchanged
+rather than adding a wrapper. It uses `retention-days: 1` and does not overwrite
+or upload any extra artifacts. Failure at any preceding step prevents upload.
+No plan, budget, payment credentials, or security settings are changed. If the
+one-shot slot is missed or upload is blocked, stop and report rather than widen
+the guard or automatically rerun. Verify retained size/expiry and retrieve the
+real footage promptly for visual inspection before claiming a video deliverable.
