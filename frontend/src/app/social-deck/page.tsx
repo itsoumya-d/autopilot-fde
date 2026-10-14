@@ -1,358 +1,115 @@
 'use client';
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { 
-  Share2, 
-  Copy, 
-  Check, 
-  ArrowRight, 
-  Sparkles, 
-  Layers, 
-  Terminal, 
-  Activity, 
-  ShieldCheck, 
-  CheckCircle2, 
-  XCircle,
-  Smartphone,
-  Globe,
-  Monitor,
-  Code2
-} from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Copy, Check, Globe, Smartphone, Terminal, Monitor } from 'lucide-react';
+import { ErrorState, PageHeader, SectionHeader, SourceLabel } from '@/components/Workspace';
+
+const infographicPost = `UI Generation is NOT just Web Code.
+
+Computer-use interfaces span Web DOM, SwiftUI, Jetpack Compose, and terminal UI. A cross-host evaluation concept can compare state, accessibility, visual parity, and interaction behavior.
+
+HostShift concept preview. Any benchmark numbers shown in this studio are static examples, not current verified results.`;
+
+const pitchSlides = [
+  { num: '01', title: 'Begin with the evidence.', tag: 'Observe', desc: 'Reconstruct repeatable work from source-linked communication, then inspect the activities and confidence behind each workflow.', stat: '158 traces / static showcase example', tweet: 'Start with the evidence. AutoPilot explores source-linked workflow discovery and review. The 158-trace figure in this concept deck is a static example, not a current production result.' },
+  { num: '02', title: 'Understand the variation.', tag: 'Review', desc: 'Use graph transition entropy as one input when examining operational unpredictability. An opportunity score is not permission to automate.', stat: '58.3–74.4 score range / example data', tweet: 'An automation score is a starting point for review. Explore graph transition entropy alongside workflow evidence and risk. Scores of 58.3–74.4 in this deck are static examples, not validated forecasts.' },
+  { num: '03', title: 'Explore before expanding.', tag: 'Simulate', desc: 'Compare illustrative confidence thresholds and estimated straight-through rates. Local sandbox formulas do not establish real-world reliability.', stat: '56.2% straight-through rate / example', tweet: 'Explore before expanding. A simulation can make assumptions visible, but it cannot establish real-world safety. The 56.2% straight-through rate in this deck is illustrative example data.' },
+  { num: '04', title: 'Keep a person in the loop.', tag: 'Pilot', desc: 'Prepare draft pilot records with explicit enabled steps and review policies. Creating or approving a record does not launch a live worker.', stat: 'Draft record → human review', tweet: 'Keep a person in the loop. AutoPilot prepares draft pilot records with enabled steps and review policies. Creating or approving a record does not launch a live worker. Review the evidence before any rollout.' },
+  { num: '05', title: 'Make the proof inspectable.', tag: 'Measure', desc: 'Separate recorded activity from example charts. Check actual test artifacts, provenance, and operational outcomes before publishing performance claims.', stat: '142/142 tests / historical showcase claim', tweet: 'Make the proof inspectable. Separate recorded activity from example charts, and link claims to actual evidence. The 142/142 test count in this concept deck is a historical showcase claim, not a current verified CI result.' },
+];
+
+const formats = [
+  { id: 'infographic', label: '1. HostShift: Multi-Host Infographic', short: 'Infographic' },
+  { id: 'editorial', label: '2. AutoPilot FDE: 4-Panel Editorial', short: '4-panel editorial' },
+  { id: 'carousel', label: '3. 5-Slide Master Pitch Deck', short: 'Pitch deck' },
+] as const;
 
 export default function SocialDeckPage() {
   const [copiedIndex, setCopiedIndex] = useState<string | null>(null);
+  const [copyingIndex, setCopyingIndex] = useState<string | null>(null);
+  const [copyError, setCopyError] = useState('');
+  const copyRequest = useRef(0);
+  const copyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    copyRequest.current += 1;
+    if (copyTimeout.current !== null) clearTimeout(copyTimeout.current);
+  }, []);
   const [activeTheme, setActiveTheme] = useState<'infographic' | 'editorial' | 'carousel'>('infographic');
 
-  const copyToClipboard = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedIndex(id);
-    setTimeout(() => setCopiedIndex(null), 2000);
+  const copyToClipboard = async (text: string, id: string) => {
+    const request = ++copyRequest.current;
+    if (copyTimeout.current !== null) clearTimeout(copyTimeout.current);
+    setCopiedIndex(null);
+    setCopyError('');
+    setCopyingIndex(id);
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(text);
+      if (request !== copyRequest.current) return;
+      setCopiedIndex(id);
+      copyTimeout.current = setTimeout(() => {
+        setCopiedIndex(null);
+        copyTimeout.current = null;
+      }, 2000);
+    } catch {
+      if (request === copyRequest.current) setCopyError('Could not copy to the clipboard. Try again or copy the text manually.');
+    } finally {
+      if (request === copyRequest.current) setCopyingIndex(null);
+    }
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8 text-slate-900 bg-slate-50 min-h-screen">
-      {/* Top Header */}
-      <div className="text-center max-w-4xl mx-auto mb-12">
-        <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-sm text-blue-700 font-semibold mb-4 shadow-sm">
-          <Sparkles size={16} className="text-blue-600" />
-          <span>Vector-Sharp Social Media Design Studio</span>
-        </div>
-        <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-slate-900 mb-4">
-          Pixel-Perfect Social Carousel & Infographics
-        </h1>
-        <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto">
-          Clean vector graphics, sharp typography, zero AI image glitches. Ready for high-resolution screenshots, LinkedIn posts, and 280-char X tweets.
-        </p>
+    <div className="page-stack">
+      <PageHeader eyebrow="Studio / Social Studio" title="Social Studio" description="Preview three content layouts and copy their accompanying text. Review example claims before sharing." />
+      <div className="flex flex-wrap items-center justify-between gap-4 border-y border-[var(--border)] py-4">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Content format">{formats.map(tab => <button key={tab.id} type="button" aria-label={tab.label} aria-pressed={activeTheme === tab.id} onClick={() => setActiveTheme(tab.id)} className={activeTheme === tab.id ? 'button-primary' : 'button-secondary'}>{tab.short}</button>)}</div>
+        <SourceLabel>Local content preview · No publishing</SourceLabel>
       </div>
+      {copyError && <ErrorState>{copyError}</ErrorState>}
+      <p role="status" className="sr-only">{copyingIndex ? 'Copying to clipboard…' : copiedIndex ? 'Copied to clipboard.' : ''}</p>
 
-      {/* Theme Switcher Tabs */}
-      <div className="flex justify-center gap-3 mb-12">
-        {[
-          { id: 'infographic', label: '1. HostShift: Multi-Host Infographic' },
-          { id: 'editorial', label: '2. AutoPilot FDE: 4-Panel Editorial' },
-          { id: 'carousel', label: '3. 5-Slide Master Pitch Deck' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTheme(tab.id as any)}
-            className={`px-5 py-3 rounded-xl font-bold text-sm transition shadow-sm ${
-              activeTheme === tab.id
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 scale-105'
-                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* THEME 1: HOSTSHIFT MULTI-HOST BALLOON INFOGRAPHIC */}
-      {activeTheme === 'infographic' && (
-        <div className="space-y-12 max-w-4xl mx-auto">
-          {/* Card Frame (Exact Replica of Reference 2) */}
-          <div className="bg-white rounded-3xl p-10 border-2 border-slate-200 shadow-2xl relative overflow-hidden">
-            {/* Header */}
-            <div className="text-center mb-10">
-              <h2 className="text-4xl sm:text-6xl font-black tracking-tight text-slate-950">
-                UI Generation is <span className="text-blue-600">NOT</span> just Web Code.
-              </h2>
-              <div className="w-24 h-1.5 bg-blue-600 rounded-full mx-auto mt-4" />
-            </div>
-
-            {/* Main Visual Comparison */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end py-8 border-b border-slate-100">
-              {/* Left Side: Single Web Balloon */}
-              <div className="flex flex-col items-center">
-                {/* Blue Balloon */}
-                <div className="w-36 h-44 rounded-[50%] bg-gradient-to-b from-blue-500 to-blue-600 text-white flex flex-col items-center justify-center p-4 shadow-lg text-center relative mb-4">
-                  <Globe size={28} className="mb-2 text-white/90" />
-                  <span className="font-bold text-sm leading-tight">Basic Web DOM</span>
-                  <span className="text-[10px] text-blue-100 mt-1">HTML / CSS</span>
-                  {/* Balloon String */}
-                  <div className="w-0.5 h-16 bg-slate-400 absolute -bottom-16 left-1/2 -translate-x-1/2" />
-                  <div className="w-3 h-2 bg-blue-700 absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-b-sm" />
-                </div>
-
-                {/* Left 3D Label */}
-                <div className="mt-16 text-center">
-                  <div className="text-5xl font-black tracking-widest text-slate-800 border-b-4 border-slate-300 pb-1">
-                    WEB
-                  </div>
-                  <div className="mt-4 flex items-center justify-center gap-1 text-slate-500 font-bold text-sm">
-                    <XCircle size={16} className="text-rose-500" />
-                    <span>Just Surface DOM</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Side: Rich Multi-Host Balloon Bouquet */}
-              <div className="flex flex-col items-center">
-                {/* Bouquet Grid */}
-                <div className="relative w-full max-w-sm h-64 flex flex-wrap justify-center items-center gap-2 p-2">
-                  {[
-                    { label: 'SwiftUI Native', color: 'bg-blue-600 text-white', icon: Smartphone },
-                    { label: 'Jetpack Compose', color: 'bg-lime-400 text-slate-900', icon: Smartphone },
-                    { label: 'Terminal CLI / TUI', color: 'bg-slate-800 text-white', icon: Terminal },
-                    { label: 'State Oracle', color: 'bg-blue-500 text-white', icon: Activity },
-                    { label: 'Accessibility Tree', color: 'bg-blue-700 text-white', icon: ShieldCheck },
-                    { label: 'Visual Parity', color: 'bg-slate-600 text-white', icon: Monitor },
-                    { label: 'Interaction Harness', color: 'bg-lime-500 text-slate-950', icon: Layers },
-                    { label: '100 Tasks Suite', color: 'bg-blue-600 text-white', icon: CheckCircle2 },
-                    { label: 'Deterministic Grading', color: 'bg-lime-400 text-slate-950', icon: Sparkles },
-                  ].map((balloon, i) => {
-                    const Icon = balloon.icon;
-                    return (
-                      <div
-                        key={i}
-                        className={`px-3 py-2 rounded-full font-bold text-xs flex items-center gap-1.5 shadow-md transform hover:scale-110 transition cursor-default ${balloon.color}`}
-                      >
-                        <Icon size={12} />
-                        <span>{balloon.label}</span>
-                      </div>
-                    );
-                  })}
-                  {/* Tie Strings to bottom */}
-                  <div className="w-0.5 h-12 bg-slate-400 absolute -bottom-12 left-1/2 -translate-x-1/2" />
-                </div>
-
-                {/* Right 3D Label */}
-                <div className="mt-12 text-center">
-                  <div className="text-5xl font-black tracking-widest text-blue-600 border-b-4 border-blue-600 pb-1">
-                    MULTI-HOST
-                  </div>
-                  <div className="mt-4 flex items-center justify-center gap-1 text-emerald-600 font-bold text-sm">
-                    <CheckCircle2 size={16} className="text-emerald-500" />
-                    <span>HostShift: True Cross-Host Parity</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Insight Footer */}
-            <div className="mt-8 text-center text-sm font-medium text-slate-700 leading-relaxed max-w-2xl mx-auto">
-              Real computer-use AI models are evaluated on <strong className="text-blue-600">SwiftUI</strong>, <strong className="text-lime-600">Jetpack Compose</strong>, <strong className="text-slate-900">Terminal CLI</strong>, <strong className="text-blue-600">State Oracles</strong>, <strong className="text-lime-600">Accessibility</strong>, and <strong className="text-blue-600">Deterministic Parity</strong> — not just isolated browser HTML.
-            </div>
+      {activeTheme === 'infographic' && <div className="workspace-grid">
+        <section className="surface surface-pad" aria-label="Infographic preview">
+          <div className="flex flex-wrap justify-between gap-3 border-b border-[var(--border)] pb-4"><span className="font-semibold tracking-tight">HostShift</span><SourceLabel>Concept / 01</SourceLabel></div>
+          <h2 className="my-8 max-w-lg text-3xl font-semibold leading-tight tracking-tight">UI Generation is <span className="text-[var(--accent)]">NOT</span> just Web Code.</h2>
+          <p className="muted max-w-xl text-sm">A cross-host evaluation concept: inspect how an interface behaves across the environments people actually use.</p>
+          <div className="mt-8 grid grid-cols-1 gap-0 min-[480px]:grid-cols-2">
+            {[
+              { title: 'Web', language: 'DOM / HTML / CSS', icon: Globe },
+              { title: 'iOS & macOS', language: 'SwiftUI', icon: Monitor },
+              { title: 'Android', language: 'Jetpack Compose', icon: Smartphone },
+              { title: 'Terminal', language: 'CLI / TUI', icon: Terminal },
+            ].map((host, index) => <div key={host.title} className="border-t border-[var(--border)] py-5 pr-4"><div className="mb-4 flex items-center gap-3"><host.icon size={19} className="text-[var(--accent)]" aria-hidden="true" /><span className="mono metadata">0{index + 1}</span></div><h3 className="text-lg">{host.title}</h3><p className="mono metadata mt-1">{host.language}</p></div>)}
           </div>
+          <div className="mt-3 border-t-2 border-[var(--text)] pt-5"><h3 className="mb-3">What to compare</h3><ul className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2"><li>State oracles</li><li>Accessibility trees</li><li>Visual parity</li><li>Interaction behavior</li><li>Deterministic grading</li><li>Task coverage</li></ul></div>
+          <p className="metadata mt-6 border-t border-[var(--border)] pt-4">Source: static concept content. This preview does not verify benchmark coverage or test results.</p>
+        </section>
+        <aside className="inspector" aria-label="Post copy tools">
+          <SectionHeader title="Accompanying post" actions={<button type="button" disabled={copyingIndex === 'infographic-text'} onClick={() => copyToClipboard(infographicPost, 'infographic-text')} className="button-secondary shrink-0">{copiedIndex === 'infographic-text' ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}<span>{copyingIndex === 'infographic-text' ? 'Copying…' : copiedIndex === 'infographic-text' ? 'Copied!' : 'Copy Post'}</span></button>} />
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">{infographicPost}</p>
+          <p className="metadata mt-6 border-t border-[var(--border)] pt-4">Copies text only. Nothing is exported, scheduled, or posted.</p>
+        </aside>
+      </div>}
 
-          {/* Ready-to-Copy Post Text */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-md">
-            <div className="flex justify-between items-center mb-3">
-              <span className="font-bold text-sm text-slate-800">Copy Post for LinkedIn / X</span>
-              <button
-                onClick={() => copyToClipboard(
-                  `UI Generation is NOT just Web Code.\n\nMost benchmarks evaluate AI on basic HTML/CSS. But real computer-use agents must operate across:\n- SwiftUI (iOS & macOS)\n- Jetpack Compose (Android)\n- Terminal CLI / TUI\n- Web DOM\n\nIntroducing HostShift: 100 UI tasks, 142/142 CI unit tests, deterministic state oracles.\n\nCode: https://github.com/your-username/hostshift\n\n@sama @OriolVinyalsML @demishassabis`,
-                  'infographic-text'
-                )}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 font-semibold text-xs hover:bg-blue-100 transition"
-              >
-                {copiedIndex === 'infographic-text' ? <Check size={14} /> : <Copy size={14} />}
-                <span>{copiedIndex === 'infographic-text' ? 'Copied!' : 'Copy Post'}</span>
-              </button>
-            </div>
-            <p className="text-xs text-slate-600 font-mono bg-slate-50 p-4 rounded-xl border border-slate-200">
-              UI Generation is NOT just Web Code.<br/><br/>
-              Most benchmarks evaluate AI on basic HTML/CSS. But real computer-use agents must operate across:<br/>
-              • SwiftUI (iOS & macOS)<br/>
-              • Jetpack Compose (Android)<br/>
-              • Terminal CLI / TUI<br/>
-              • Web DOM<br/><br/>
-              Introducing HostShift: 100 UI tasks, 142/142 CI unit tests, deterministic state oracles.<br/><br/>
-              Code: https://github.com/your-username/hostshift<br/>
-              @sama @OriolVinyalsML @demishassabis
-            </p>
-          </div>
-        </div>
-      )}
+      {activeTheme === 'editorial' && <section aria-label="Four-panel editorial preview">
+        <SectionHeader title="Evidence before automation" description="A four-panel narrative, arranged as a single editorial sequence." actions={<SourceLabel>AutoPilot / concept layout</SourceLabel>} />
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">{[
+          { num: '01', title: 'Bring the work into focus.', body: 'Start with the recurring requests and handoffs in operational communication.', caption: 'Observe / source-linked records' },
+          { num: '02', title: 'Make evidence the priority.', body: 'Inspect the activities, relationships, and confidence behind a workflow before judging its automation potential.', caption: 'Review / inspect the source' },
+          { num: '03', title: 'Keep assumptions visible.', body: 'Use illustrative simulations to explore a scenario. Keep example rates and estimated savings separate from measured outcomes.', caption: 'Explore / example data is labeled' },
+          { num: '04', title: 'Prepare a reviewed pilot.', body: 'Choose eligible steps and review policies. A draft record does not start a live worker or authorize an external action.', caption: 'Pilot / permission stays explicit' },
+        ].map(panel => <article key={panel.num} className="surface flex min-h-[280px] flex-col p-6 sm:p-8"><div className="flex justify-between gap-4 border-b border-[var(--border)] pb-4"><span className="text-xs font-semibold">AutoPilot</span><span className="mono metadata">{panel.num} / 04</span></div><h3 className="mb-4 mt-7 max-w-sm text-3xl font-semibold leading-tight tracking-tight">{panel.title}</h3><p className="muted max-w-sm text-sm">{panel.body}</p><p className="mt-auto pt-6 text-xs font-medium text-[var(--accent)]">{panel.caption}</p></article>)}</div>
+        <p className="metadata mt-4">Static editorial concept. No current benchmark, customer outcome, or production deployment is represented.</p>
+      </section>}
 
-      {/* THEME 2: AUTOPILOT FDE 4-PANEL EDITORIAL STORYBOARD */}
-      {activeTheme === 'editorial' && (
-        <div className="space-y-12 max-w-4xl mx-auto">
-          {/* 4-Panel Grid (Exact Replica of Reference 1) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Panel 1: Top-Left (Chaos & Stress) */}
-            <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl flex flex-col justify-between min-h-[340px] relative overflow-hidden">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full border-2 border-indigo-600 flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-indigo-600" />
-                </div>
-                <span className="font-bold text-xs tracking-wider text-slate-800">AutoPilot FDE</span>
-              </div>
-
-              <div className="my-6">
-                <h3 className="text-3xl font-black text-slate-900 leading-tight">
-                  Take the <span className="relative inline-block px-2 text-indigo-700 border-2 border-indigo-500 rounded-full">chaos</span> out of your Operations.
-                </h3>
-                <p className="text-xs text-slate-500 mt-3">Drowning in hundreds of manual Slack, WhatsApp, and email requests every day?</p>
-              </div>
-
-              {/* Stress Character Line Art */}
-              <div className="flex justify-center">
-                <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center text-3xl">
-                  🤯
-                </div>
-              </div>
-            </div>
-
-            {/* Panel 2: Top-Right (Inverted Dark Contrast) */}
-            <div className="bg-slate-950 rounded-3xl p-8 border border-slate-800 shadow-xl text-white flex flex-col justify-between min-h-[340px] relative overflow-hidden">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full border-2 border-indigo-400 flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-indigo-400" />
-                </div>
-                <span className="font-bold text-xs tracking-wider text-slate-200">AutoPilot FDE</span>
-              </div>
-
-              <div className="my-6">
-                <h3 className="text-3xl font-black leading-tight text-white">
-                  Make <span className="text-indigo-400 border-b-2 border-indigo-400">evidence</span> your priority.
-                </h3>
-                <p className="text-xs text-slate-400 mt-3">We quantify operational readiness using Graph Shannon Transition Entropy, not guesswork.</p>
-              </div>
-
-              <div className="flex justify-center">
-                <div className="px-4 py-2 rounded-xl bg-indigo-950/80 border border-indigo-800/60 font-mono text-xs text-indigo-300">
-                  H(p) = -∑ P(u→v) log2 P(u→v)
-                </div>
-              </div>
-            </div>
-
-            {/* Panel 3: Bottom-Left (Solid Lavender Accent) */}
-            <div className="bg-indigo-600 rounded-3xl p-8 shadow-xl text-white flex flex-col justify-between min-h-[340px]">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full border-2 border-white flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-white" />
-                </div>
-                <span className="font-bold text-xs tracking-wider text-white">AutoPilot FDE</span>
-              </div>
-
-              <div className="my-6 text-center">
-                <h3 className="text-4xl font-black leading-tight">
-                  Automation comes after proof.
-                </h3>
-                <p className="text-xs text-indigo-100 mt-3">1,000 Monte Carlo execution runs forecast Straight-Through Rates before any deployment.</p>
-              </div>
-
-              <div className="flex justify-center text-3xl">
-                🛡️ ➔ 🚀
-              </div>
-            </div>
-
-            {/* Panel 4: Bottom-Right (Peaceful Relief) */}
-            <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl flex flex-col justify-between min-h-[340px]">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full border-2 border-indigo-600 flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-indigo-600" />
-                </div>
-                <span className="font-bold text-xs tracking-wider text-slate-800">AutoPilot FDE</span>
-              </div>
-
-              <div className="my-6">
-                <h3 className="text-3xl font-black text-slate-900 leading-tight">
-                  Get the <span className="border-b-2 border-slate-900">autonomous help</span> you need.
-                </h3>
-                <p className="text-xs text-slate-500 mt-3">Self-deploying LangGraph copilots with Human-in-the-Loop review gates.</p>
-              </div>
-
-              <div className="flex justify-center">
-                <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center text-3xl">
-                  😌✨
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* THEME 3: 5-SLIDE MASTER PITCH DECK */}
-      {activeTheme === 'carousel' && (
-        <div className="space-y-8 max-w-4xl mx-auto">
-          {[
-            {
-              num: '01',
-              title: 'Autonomous Process Discovery',
-              desc: 'Mines messy Slack, WhatsApp, and email streams to extract business workflows without predefined templates.',
-              stat: '158 Multi-Turn Traces Extracted',
-              tag: 'Phase 1 // Ingestion',
-              tweet: 'Can an AI act as a Forward Deployed Engineer?\n\nAutoPilot FDE 2.0 mines Slack/WhatsApp chat, scores automation potential via Graph Entropy, & compiles runnable LangGraph agents with HITL gates.\n\nDemo: https://github.com/your-username/autopilot-fde\n\n@sama @hwchase17',
-            },
-            {
-              num: '02',
-              title: 'Graph Transition Entropy',
-              desc: 'Formalizes operational unpredictability using Shannon entropy to score automation feasibility across 8 enterprise departments.',
-              stat: '16.1 pt Score Spread (58.3 - 74.4)',
-              tag: 'Phase 2 // Mathematics',
-              tweet: 'Most AI agents fail because they lack entropy models.\n\nOur APS metric uses Graph Transition Entropy: H = -∑ P(u→v) log2 P(u→v).\n\nPredicts agent feasibility with 91% confidence.\n\nPaper: [Link]\n\n@markchen90 @chrs_olah',
-            },
-            {
-              num: '03',
-              title: 'Monte Carlo Pre-Flight Simulator',
-              desc: 'Simulates 1,000 executions per workflow to forecast Straight-Through Rates (STR) and block 100% of critical safety risks.',
-              stat: '56.2% STR • 480m ➔ 15.8m Resolution',
-              tag: 'Phase 3 // Simulation',
-              tweet: 'Never deploy an agent blindly.\n\nAutoPilot FDE runs 1,000 Monte Carlo simulation runs before deployment:\n• Onboarding: 480m ➔ 15.8m ($44k/yr ROI)\n• DevOps: 100% safety intercept rate.\n\nDemo: https://github.com/your-username/autopilot-fde\n\n@ssankar @PalantirTech',
-            },
-            {
-              num: '04',
-              title: 'Self-Synthesizing LangGraph Agents',
-              desc: 'Compiles discovered workflows directly into type-safe Python LangGraph state machines with Human-in-the-Loop approval checkpoints.',
-              stat: 'Zero Drag-and-Drop • 100% Python Code',
-              tag: 'Phase 4 // Deployment',
-              tweet: 'The future isn\'t software for humans. It\'s AI that discovers what to build.\n\nAutoPilot FDE 2.0 connects to Slack/WhatsApp, extracts workflows, & writes verified LangGraph Python code with HITL gates.\n\nShowcase: https://github.com/your-username/autopilot-fde\n\n@sama @joaomdmoura',
-            },
-            {
-              num: '05',
-              title: 'Empirical Benchmark & Frontier Pitch',
-              desc: 'Tested across 7 enterprise departments generating $232k/yr net ROI. Seeking frontier research opportunities at DeepMind, OpenAI, Anthropic.',
-              stat: '142/142 CI Tests Passed • 10 Research Blueprints',
-              tag: 'Phase 5 // Frontier Lab Selection',
-              tweet: 'Looking to join frontier agent research @DeepMind @OpenAI @AnthropicAI.\n\nBuilt AutoPilot FDE + HostShift benchmark (142/142 CI tests passed) + 10 theoretical blueprints on test-time reasoning entropy.\n\nRepo: https://github.com/your-username\n\n@demishassabis @JeffDean',
-            },
-          ].map((slide, idx) => (
-            <div key={idx} className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-              <div className="space-y-2 max-w-xl">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl font-black text-blue-600">{slide.num}</span>
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400 bg-slate-100 px-2.5 py-0.5 rounded-full">{slide.tag}</span>
-                </div>
-                <h3 className="text-2xl font-black text-slate-900">{slide.title}</h3>
-                <p className="text-sm text-slate-600">{slide.desc}</p>
-                <div className="inline-block font-mono text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-lg mt-2">
-                  {slide.stat}
-                </div>
-              </div>
-
-              <button
-                onClick={() => copyToClipboard(slide.tweet, `slide-${idx}`)}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-blue-600 transition shadow-md shrink-0"
-              >
-                {copiedIndex === `slide-${idx}` ? <Check size={16} /> : <Copy size={16} />}
-                <span>{copiedIndex === `slide-${idx}` ? 'Copied Tweet!' : 'Copy 280-char Tweet'}</span>
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+      {activeTheme === 'carousel' && <section aria-label="Five-slide carousel preview" className="space-y-5">
+        <SectionHeader title="A five-slide operating story" description="Each slide has an accompanying short post. Example metrics are labeled in both the preview and copied text." actions={<SourceLabel>Concept deck / 5 slides</SourceLabel>} />
+        {pitchSlides.map((slide, idx) => <article key={slide.num} className="surface overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-3"><span className="metadata"><span className="mono mr-2">{slide.num} / 05</span>{slide.tag}</span><button type="button" disabled={copyingIndex === `slide-${idx}`} onClick={() => copyToClipboard(slide.tweet, `slide-${idx}`)} className="button-secondary">{copiedIndex === `slide-${idx}` ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}<span>{copyingIndex === `slide-${idx}` ? 'Copying…' : copiedIndex === `slide-${idx}` ? 'Copied Tweet!' : 'Copy 280-char Tweet'}</span></button></div>
+          <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] sm:p-8"><div><p className="page-kicker">AutoPilot / concept preview</p><h3 className="mb-4 text-3xl font-semibold leading-tight tracking-tight">{slide.title}</h3><p className="muted max-w-xl text-sm">{slide.desc}</p><p className="mono mt-6 border-t border-[var(--border)] pt-4 text-xs">{slide.stat}</p></div><div className="border-t border-[var(--border)] pt-5 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0"><p className="metadata mb-3">Accompanying post · {slide.tweet.length}/280 characters</p><p className="text-sm leading-relaxed">{slide.tweet}</p></div></div>
+        </article>)}
+      </section>}
     </div>
   );
 }

@@ -10,20 +10,14 @@ interface StatsCardProps {
 
 const StatsCard: React.FC<StatsCardProps> = ({ label, value, icon: Icon, trend, trendUp }) => {
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 shadow-sm flex flex-col">
-      <div className="flex justify-between items-start">
-        <div className="bg-slate-800/80 p-3 rounded-lg text-cyan-500">
-          <Icon size={24} />
-        </div>
-        {trend && (
-          <span className={`text-sm font-medium px-2 py-1 rounded-full ${trendUp ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
-            {trend}
-          </span>
-        )}
+    <div className="ledger-stat min-w-0">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <Icon size={17} className="text-[var(--text-muted)]" aria-hidden="true" />
+        {trend && <span className={`metadata ${trendUp ? 'text-[var(--success)]' : 'text-[var(--text-muted)]'}`}>{trend}</span>}
       </div>
-      <div className="mt-4">
-        <h3 className="text-slate-400 text-sm font-medium">{label}</h3>
-        <p className="text-3xl font-semibold text-white mt-1 tracking-tight">{value}</p>
+      <div>
+        <h3 className="text-sm text-[var(--text-muted)]">{label}</h3>
+        <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums">{value}</p>
       </div>
     </div>
   );

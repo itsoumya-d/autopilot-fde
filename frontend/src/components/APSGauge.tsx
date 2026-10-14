@@ -4,29 +4,14 @@ interface APSGaugeProps {
   score: number;
 }
 
-const APSGauge: React.FC<APSGaugeProps> = ({ score }) => {
-  const getColor = (score: number) => {
-    if (score >= 80) return 'text-green-500';
-    if (score >= 50) return 'text-yellow-500';
-    return 'text-red-500';
-  };
-
-  return (
-    <div className="relative w-32 h-32 flex items-center justify-center">
-      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="10" className="text-gray-700" />
-        <circle 
-          cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="10" 
-          strokeDasharray="283" strokeDashoffset={283 - (283 * score) / 100} 
-          className={`${getColor(score)} transition-all duration-1000 ease-out`} 
-        />
-      </svg>
-      <div className="absolute flex flex-col items-center">
-        <span className="text-3xl font-bold text-white">{score}</span>
-        <span className="text-xs text-slate-400">APS</span>
-      </div>
+// Compact comparison mark. Opportunity measures suitability, never permission.
+const APSGauge: React.FC<APSGaugeProps> = ({ score }) => (
+  <div className="min-w-0">
+    <div className="flex items-baseline justify-between gap-3"><span className="text-2xl font-semibold tabular-nums text-[var(--text)]">{score}</span><span className="metadata">APS / 100</span></div>
+    <div role="meter" aria-label="Automation opportunity score" aria-valuemin={0} aria-valuemax={100} aria-valuenow={score} className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
+      <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${Math.min(100, Math.max(0, score))}%` }} />
     </div>
-  );
-};
+  </div>
+);
 
 export default APSGauge;

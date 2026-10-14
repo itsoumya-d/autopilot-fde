@@ -9,16 +9,16 @@ describe('APSGauge', () => {
   it('renders the numeric score and label', () => {
     render(<APSGauge score={74} />);
     expect(screen.getByText('74')).toBeTruthy();
-    expect(screen.getByText('APS')).toBeTruthy();
+    expect(screen.getByText('APS / 100')).toBeTruthy();
   });
 
-  it('encodes the arc as stroke-dashoffset proportional to the score', () => {
-    const { container } = render(<APSGauge score={50} />);
-    const arcs = Array.from(container.querySelectorAll('circle'));
-    const progress = arcs.find(
-      (c) => c.getAttribute('stroke-dashoffset') !== null,
-    );
-    expect(progress?.getAttribute('stroke-dashoffset')).toBe('141.5'); // 283 - 283*0.5
+  it.each([0, 50, 100])('encodes score %i as an accessible proportional meter', score => {
+    render(<APSGauge score={score} />);
+    const meter = screen.getByRole('meter', { name: 'Automation opportunity score' });
+    expect(meter.getAttribute('aria-valuenow')).toBe(String(score));
+    expect(meter.getAttribute('aria-valuemin')).toBe('0');
+    expect(meter.getAttribute('aria-valuemax')).toBe('100');
+    expect((meter.firstElementChild as HTMLElement).style.width).toBe(`${score}%`);
   });
 });
 

@@ -1,16 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Boxes, Clock, Link2, Network } from 'lucide-react';
 import { api } from '@/lib/api';
-import {
-  colorFor,
-  objectsOfType,
-  totalEvents,
-  totalObjects,
-  traceFor,
-  type ObjectLog,
-} from '@/lib/objectLens';
+import { ErrorState, PageHeader, SourceLabel } from '@/components/Workspace';
+import { objectsOfType, totalEvents, totalObjects, traceFor, type ObjectLog } from '@/lib/objectLens';
 
 export default function Objects() {
   const [log, setLog] = useState<ObjectLog | null>(null);
@@ -19,166 +12,91 @@ export default function Objects() {
   const [selectedId, setSelectedId] = useState('');
 
   useEffect(() => {
-    api
-      .objectLog()
-      .then((response) => setLog(response as unknown as ObjectLog))
-      .catch((reason: Error) => setError(reason.message));
+    let current = true;
+    api.objectLog()
+      .then(response => { if (current) setLog(response as unknown as ObjectLog); })
+      .catch((reason: Error) => { if (current) setError(reason.message); });
+    return () => { current = false; };
   }, []);
 
-  const typeNames = useMemo(
-    () => (log ? log.objectTypes.map((t) => t.name) : []),
-    [log],
-  );
+  const typeNames = useMemo(() => log ? log.objectTypes.map(type => type.name) : [], [log]);
   const visibleObjects = useMemo(() => objectsOfType(log, typeFilter), [log, typeFilter]);
   const trace = useMemo(() => traceFor(log, selectedId), [log, selectedId]);
+  const selectedObject = log?.objects.find(object => object.id === selectedId);
 
-  return (
-    <div className="max-w-7xl mx-auto space-y-7">
-      <header>
-        <div className="flex items-center gap-2 text-sm text-cyan-300">
-          <Network size={16} /> Objects intersect where single-case views collapse
+  function filterByType(type: string) {
+    setTypeFilter(type);
+    // A detail view must never outlive the filter that made its object visible.
+    if (!objectsOfType(log, type).some(object => object.id === selectedId)) setSelectedId('');
+  }
+
+  return <div className="page-stack">
+    <PageHeader eyebrow="Workspace / Objects" title="Object Lens" description="Follow one object across connected events. Inspect its relationships, chronology, and source evidence together." />
+    {error && <ErrorState>{error}</ErrorState>}
+    {log && <>
+      <div className="ledger">
+        <Stat label="Objects" value={totalObjects(log)} /><Stat label="Events" value={totalEvents(log)} /><Stat label="Object types" value={log.objectTypes.length} /><Stat label="Event types" value={log.eventTypes.length} />
+      </div>
+      <section aria-labelledby="object-type-filter">
+        <h2 id="object-type-filter" className="metadata mb-3">Filter by object type</h2>
+        <div className="flex flex-wrap gap-2">
+          <TypeChip label="all" active={typeFilter === 'all'} onClick={() => filterByType('all')} count={totalObjects(log)} />
+          {typeNames.map(name => <TypeChip key={name} label={name} active={typeFilter === name} onClick={() => filterByType(name)} count={log.summaries[name]?.objects ?? 0} />)}
         </div>
-        <h1 className="mt-2 text-3xl font-bold">Object Lens</h1>
-        <p className="mt-1 text-slate-400">
-          Multi-object event log: every mined event references typed objects with
-          qualified relationships. Click an object to walk its chronology.
-        </p>
-      </header>
-
-      {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-200">
-          {error}
-        </div>
-      )}
-
-      {log && (
-        <>
-          <div className="grid gap-4 md:grid-cols-4">
-            <StatCard icon={<Boxes size={18} className="text-cyan-300" />} label="Objects" value={totalObjects(log)} />
-            <StatCard icon={<Clock size={18} className="text-violet-300" />} label="Events" value={totalEvents(log)} />
-            <StatCard icon={<Link2 size={18} className="text-emerald-300" />} label="Object types" value={log.objectTypes.length} />
-            <StatCard icon={<Network size={18} className="text-fuchsia-300" />} label="Event types" value={log.eventTypes.length} />
+      </section>
+      <div className="workspace-grid items-start">
+        <section className="surface min-w-0 overflow-hidden" aria-labelledby="object-register">
+          <header className="surface-pad border-b border-[var(--border)]"><h2 id="object-register" className="text-lg font-semibold">Objects</h2><p className="metadata mt-1">Sorted by relationship count. Select an ID to inspect its trace.</p></header>
+          <div role="region" aria-label="Objects table" tabIndex={0} className="overflow-x-auto">
+            <table className="w-full min-w-[24rem] text-left text-sm">
+              <thead className="bg-[var(--surface-subtle)] text-xs text-[var(--text-muted)]"><tr><th scope="col" className="px-5 py-3 font-medium">Object</th><th scope="col" className="px-4 py-3 font-medium">Type</th><th scope="col" className="px-4 py-3 text-right font-medium">Links</th></tr></thead>
+              <tbody className="divide-y divide-[var(--border)]">
+                {visibleObjects.map(object => <tr key={object.id} onClick={() => setSelectedId(object.id)} className={`cursor-pointer transition-colors ${selectedId === object.id ? 'bg-[var(--accent-soft)]' : 'hover:bg-[var(--canvas)]'}`}>
+                  <td className="px-5 py-4"><button type="button" onClick={() => setSelectedId(object.id)} aria-pressed={selectedId === object.id} aria-controls="object-trace" title={object.id} className="mono max-w-[18rem] break-all rounded-sm text-left text-xs font-medium text-[var(--accent)]">{object.id}</button></td>
+                  <td className="px-4 py-4 text-[var(--text-muted)]">{object.type}</td><td className="px-4 py-4 text-right tabular-nums">{object.relationships.length}</td>
+                </tr>)}
+                {!visibleObjects.length && <tr><td colSpan={3} className="p-6 text-sm text-[var(--text-muted)]">No objects of this type yet.</td></tr>}
+              </tbody>
+            </table>
           </div>
-
-          <section className="glass-card rounded-2xl p-5">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
-              Object types
-            </h2>
-            <div className="mt-3 flex flex-wrap gap-3">
-              <TypeChip label="all" active={typeFilter === 'all'} onClick={() => setTypeFilter('all')} count={totalObjects(log)} />
-              {typeNames.map((name) => (
-                <TypeChip
-                  key={name}
-                  label={name}
-                  dot={colorFor(name)}
-                  active={typeFilter === name}
-                  onClick={() => setTypeFilter(name)}
-                  count={log.summaries[name]?.objects ?? 0}
-                />
-              ))}
-            </div>
-          </section>
-
-          <div className="grid gap-6 lg:grid-cols-[1.35fr_0.95fr]">
-            <section className="glass-card overflow-hidden rounded-2xl">
-              <header className="border-b border-slate-800 p-5">
-                <h2 className="text-lg font-semibold">Objects</h2>
-                <p className="text-xs text-slate-500">Sorted by relationship count.</p>
-              </header>
-              <table className="w-full text-left">
-                <thead className="bg-slate-900/70 text-xs uppercase tracking-wider text-slate-500">
-                  <tr>
-                    <th className="p-4">Object</th>
-                    <th className="p-4">Type</th>
-                    <th className="p-4">Links</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {visibleObjects.map((object) => (
-                    <tr
-                      key={object.id}
-                      onClick={() => setSelectedId(object.id)}
-                      className={`cursor-pointer transition-colors hover:bg-slate-800/50 ${
-                        selectedId === object.id ? 'bg-cyan-500/5' : ''
-                      }`}
-                    >
-                      <td className="p-4 font-mono text-sm">{object.id}</td>
-                      <td className="p-4">
-                        <span className="inline-flex items-center gap-2 text-sm text-slate-300">
-                          <span className={`inline-block h-2.5 w-2.5 rounded-full ${colorFor(object.type)}`} />
-                          {object.type}
-                        </span>
-                      </td>
-                      <td className="p-4 text-slate-300">{object.relationships.length}</td>
-                    </tr>
-                  ))}
-                  {!visibleObjects.length && (
-                    <tr><td colSpan={3} className="p-6 text-center text-slate-500">No objects of this type yet.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </section>
-
-            <aside className="glass-card rounded-2xl p-6">
-              <h2 className="text-lg font-semibold">Object trace</h2>
-              {!selectedId && (
-                <p className="mt-3 text-sm text-slate-400">
-                  Select an object to see its chronological events.
-                </p>
-              )}
-              {selectedId && (
-                <>
-                  <p className="mt-2 font-mono text-xs text-cyan-300">{selectedId}</p>
-                  <ol className="mt-4 space-y-3">
-                    {trace.map((event) => (
-                      <li key={event.id} className="rounded-lg bg-slate-900/70 p-3">
-                        <p className="font-medium">{event.type}</p>
-                        <p className="mt-1 flex items-center gap-2 text-xs text-slate-500">
-                          <Clock size={12} /> {event.time}
-                        </p>
-                        {event.attributes.some((a) => a.name === 'evidence') && (
-                          <p className="mt-2 line-clamp-2 text-xs text-slate-400">
-                            {String(event.attributes.find((a) => a.name === 'evidence')?.value)}
-                          </p>
-                        )}
-                      </li>
-                    ))}
-                    {!trace.length && <li className="text-sm text-slate-500">No events touch this object.</li>}
-                  </ol>
-                </>
-              )}
-            </aside>
+        </section>
+        <aside id="object-trace" className="surface min-w-0">
+          <header className="surface-pad border-b border-[var(--border)]">
+            <SourceLabel>Object trace</SourceLabel>
+            <h2 className="mt-3 break-all text-lg font-semibold">{selectedId || 'Select an object'}</h2>
+            {selectedObject && <p className="metadata mt-2">{selectedObject.type} · {selectedObject.relationships.length} relationships · {trace.length} events</p>}
+          </header>
+          <div className="surface-pad">
+            {!selectedId && <p className="muted text-sm leading-6">Select an object to see its chronological events.</p>}
+            {selectedId && <>
+              {selectedObject && selectedObject.relationships.length > 0 && <section className="mb-6" aria-label="Object relationships">
+                <h3 className="metadata mb-2">Related objects</h3>
+                <div className="space-y-2">{selectedObject.relationships.map((relation, index) => <p key={`${relation.objectId}-${relation.qualifier}-${index}`} className="text-xs"><span className="mono break-all">{relation.objectId}</span><span className="muted ml-2">{relation.qualifier}</span></p>)}</div>
+              </section>}
+              <h3 className="mb-4 text-sm font-semibold">Chronological events</h3>
+              <ol className="evidence-list">
+                {trace.map((event, index) => <li key={event.id} className="grid min-w-0 grid-cols-[24px_minmax(0,1fr)] gap-3 pb-6">
+                  <span className="mono flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-control)] text-xs text-[var(--text-muted)]">{index + 1}</span>
+                  <div className="min-w-0"><p className="text-sm font-semibold">{event.type}</p><time dateTime={event.time} className="mono metadata mt-1 block break-all">{event.time}</time>
+                    {event.attributes.some(attribute => attribute.name === 'evidence') && <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">{String(event.attributes.find(attribute => attribute.name === 'evidence')?.value)}</p>}
+                    <p className="mono metadata mt-3 break-all">Event {event.id}</p>
+                    {event.relationships.filter(relation => relation.objectId !== selectedId).map((relation, relationIndex) => <p key={`${relation.objectId}-${relation.qualifier}-${relationIndex}`} className="metadata mt-1 break-all"><span className="mono">{relation.objectId}</span> · {relation.qualifier}</p>)}
+                  </div>
+                </li>)}
+                {!trace.length && <li className="muted text-sm">No events touch this object.</li>}
+              </ol>
+            </>}
           </div>
-        </>
-      )}
-
-      {!log && !error && <p className="text-slate-400">Loading object log…</p>}
-    </div>
-  );
+        </aside>
+      </div>
+    </>}
+    {!log && !error && <p role="status" className="muted">Loading object log…</p>}
+  </div>;
 }
 
-function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
-  return (
-    <div className="glass-card rounded-2xl p-5">
-      <div className="flex items-center gap-2 text-slate-400">{icon}<span className="text-xs uppercase tracking-wider">{label}</span></div>
-      <p className="mt-2 text-2xl font-semibold">{value}</p>
-    </div>
-  );
+function Stat({ label, value }: { label: string; value: number }) {
+  return <div className="ledger-stat"><p className="metadata">{label}</p><p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p></div>;
 }
-
-function TypeChip({ label, count, active, onClick, dot }: {
-  label: string; count: number; active: boolean; onClick: () => void; dot?: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors ${
-        active ? 'border-cyan-400/60 bg-cyan-500/10 text-cyan-200' : 'border-slate-700 text-slate-300 hover:border-slate-500'
-      }`}
-    >
-      {dot && <span className={`inline-block h-2 w-2 rounded-full ${dot}`} />}
-      {label}
-      <span className="rounded-full bg-slate-800 px-2 text-xs">{count}</span>
-    </button>
-  );
+function TypeChip({ label, count, active, onClick }: { label: string; count: number; active: boolean; onClick: () => void }) {
+  return <button type="button" aria-pressed={active} onClick={onClick} className={`inline-flex min-h-11 items-center sm:min-h-9 gap-3 rounded-md border px-3 py-2 text-sm transition-colors ${active ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]' : 'border-[var(--border-control)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-subtle)]'}`}>{label}<span className="text-xs tabular-nums">{count}</span></button>;
 }

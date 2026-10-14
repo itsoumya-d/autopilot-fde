@@ -1,6 +1,8 @@
 import hmac
 import json
 import os
+import re
+from urllib.parse import parse_qs
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
@@ -139,14 +141,61 @@ async def whatsapp_webhook(request: Request) -> dict[str, int | str]:
     return {"message": "No ingestible messages in payload", "messages_seen": 0}
 
 
+def _unique_json_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    """Reject ambiguous JSON keys instead of silently taking the last value."""
+    value: dict[str, object] = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError("Duplicate JSON key")
+        value[key] = item
+    return value
+
+
+def _decode_slack_interaction(raw: bytes, content_type: str) -> dict:
+    """Decode Slack's form payload or the explicit legacy JSON envelope.
+
+    The caller must verify the signature over raw bytes BEFORE calling this.
+    Slack wire contract: https://docs.slack.dev/interactivity/handling-user-interaction/
+    """
+    media_type = content_type.split(";", 1)[0].strip().lower()
+    if media_type not in ("application/x-www-form-urlencoded", "application/json", ""):
+        raise HTTPException(status_code=415, detail="Use Slack form encoding or a JSON payload envelope")
+    try:
+        body = raw.decode("utf-8")
+        if media_type == "application/x-www-form-urlencoded":
+            if re.search(r"%(?![0-9a-fA-F]{2})", body):
+                raise ValueError("Malformed percent encoding")
+            fields = parse_qs(body, keep_blank_values=True, strict_parsing=True,
+                              encoding="utf-8", errors="strict")
+            if "payload" not in fields or any(len(values) != 1 for values in fields.values()):
+                raise ValueError("Exactly one payload field is required")
+            payload = fields["payload"][0]
+        else:
+            envelope = json.loads(body, object_pairs_hook=_unique_json_object)
+            if not isinstance(envelope, dict):
+                raise ValueError("Payload envelope must be an object")
+            payload = envelope.get("payload")
+        interactive = json.loads(payload, object_pairs_hook=_unique_json_object) if isinstance(payload, str) else payload
+    except (ValueError, UnicodeError) as error:
+        raise HTTPException(status_code=422, detail="Malformed interactive payload") from error
+    if not isinstance(interactive, dict):
+        raise HTTPException(status_code=422, detail="Interactive payload must be an object")
+    return interactive
+
+
 @router.post("/slack/interactive")
 async def slack_interactive(request: Request) -> dict[str, str]:
     """One-click human approvals from Slack buttons (interactive payloads).
 
-    Button value format: ``approve:{agent_id}``. The action is verified
-    against SLACK_SIGNING_SECRET when configured, then routed through the
-    same guarded approve transition as the dashboard — audited with the
-    Slack user as the actor.
+    Slack sends form-encoded JSON in a single ``payload`` field. The existing
+    JSON envelope remains supported for local clients. Signatures use the exact
+    raw body before either decoder runs. Configure SLACK_SIGNING_SECRET before
+    exposing this local-demo route; signature absence behavior is unchanged.
+
+    Button value format: ``approve:{agent_id}``. State and activation policy
+    match REST approval; the audit label prefers the Slack user ID, falling back
+    to the legacy name or explicit anonymous label. This does not provide a
+    per-user authorization system or execute a worker.
     """
     from datetime import UTC, datetime
 
@@ -154,28 +203,23 @@ async def slack_interactive(request: Request) -> dict[str, str]:
 
     raw = await request.body()
     verify_slack_signature(request, raw)
-    try:
-        payload = json.loads(raw.decode() or "{}")
-    except ValueError as error:
-        raise HTTPException(status_code=422, detail="Malformed payload") from error
-    body_raw = payload.get("payload")
-    try:
-        interactive = json.loads(body_raw) if isinstance(body_raw, str) else body_raw or {}
-    except ValueError as error:
-        raise HTTPException(status_code=422, detail="Malformed interactive payload") from error
-    if not isinstance(interactive, dict):
-        raise HTTPException(status_code=422, detail="Interactive payload must be an object")
-
-    actions = (interactive.get("actions") or [])
-    if not actions:
-        raise HTTPException(status_code=422, detail="No action in payload")
+    interactive = _decode_slack_interaction(raw, request.headers.get("Content-Type", ""))
+    if "type" in interactive and interactive["type"] != "block_actions":
+        raise HTTPException(status_code=422, detail="Unsupported interaction type")
+    actions = interactive.get("actions")
+    if not isinstance(actions, list) or len(actions) != 1 or not isinstance(actions[0], dict):
+        raise HTTPException(status_code=422, detail="Exactly one approval action is required")
     action = actions[0]
     if action.get("action_id") != "agent_approve":
         raise HTTPException(status_code=422, detail="Unsupported action_id")
-    value = str(action.get("value", ""))
-    if not value.startswith("approve:"):
+    value = action.get("value")
+    if not isinstance(value, str) or not value.startswith("approve:") or not value.removeprefix("approve:").strip():
         raise HTTPException(status_code=422, detail="Unsupported action value")
     agent_id = value.split(":", 1)[1]
+    user = interactive.get("user", {})
+    if not isinstance(user, dict) or any(key in user and not isinstance(user[key], str) for key in ("id", "name")):
+        raise HTTPException(status_code=422, detail="Interaction user must contain string identity fields")
+    actor = f"slack:{user.get('id', '').strip() or user.get('name', '').strip() or 'anonymous'}"
 
     agent = await database.get_agent(agent_id)
     if not agent:
@@ -185,7 +229,11 @@ async def slack_interactive(request: Request) -> dict[str, str]:
             status_code=409,
             detail=f"Only a pending_approval agent can be approved "
                    f"(current: {agent.status.value}).")
-    actor = f"slack:{interactive.get('user', {}).get('name', 'anonymous')}"
+    # Keep the same activation policy as the REST approval surface. This
+    # validates configuration before touching status, metrics or the audit log.
+    from .agents import _ensure_safe_config
+
+    _ensure_safe_config(agent.config)
     trail = agent.metrics.setdefault("audit", [])
     if not isinstance(trail, list):
         agent.metrics["audit"] = trail = []

@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -21,12 +24,14 @@ jobs:
         working-directory: .
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
+          cache: "${{ github.event_name == 'push' && 'pip' || '' }}"
           cache-dependency-path: backend/requirements.txt
 
       - name: Install dependencies
@@ -75,11 +80,13 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: "${{ github.event_name == 'push' && 'npm' || '' }}"
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
