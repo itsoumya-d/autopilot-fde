@@ -30,13 +30,13 @@ jobs:
       - name: Stamp version from tag into server.json
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          jq --arg v "$VERSION" '.version = $v' autopilot-fde/server.json > /tmp/server.json
-          mv /tmp/server.json autopilot-fde/server.json
+          TEMP_MANIFEST="$(mktemp ./server.json.XXXXXX)"
+          trap 'rm -f "$TEMP_MANIFEST"' EXIT
+          jq --arg v "$VERSION" '.version = $v' server.json > "$TEMP_MANIFEST"
+          mv "$TEMP_MANIFEST" server.json
 
       - name: Authenticate via GitHub OIDC
-        working-directory: autopilot-fde
-        run: ../mcp-publisher login github-oidc
+        run: ./mcp-publisher login github-oidc
 
       - name: Publish
-        working-directory: autopilot-fde
-        run: ../mcp-publisher publish
+        run: ./mcp-publisher publish
