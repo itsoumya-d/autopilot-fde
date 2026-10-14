@@ -39,7 +39,7 @@ flowchart LR
 - **Discovery:** deterministic activity extraction and trace mining in [`backend/discovery/`](backend/discovery/). Optional LLM enrichment is additive; it is disabled by default.
 - **Scoring:** [`backend/scoring/`](backend/scoring/) combines volume, duration, repeatability, step feasibility, graph complexity, and evidence heuristics. The raw APS is `100 × value × feasibility × evidence`, clamped to the implementation's score range. These weights and simulation assumptions need calibration before real operational use.
 - **Persistence:** [`backend/database.py`](backend/database.py) stores channels, messages, process graphs, scores, and agent records in `backend/autopilot.db`. Intake tickets, operational incidents, rollback history, and distillation job metadata are process-local memory; restarting the API clears them.
-- **Actions:** [`backend/deployment/`](backend/deployment/) generates LangGraph code and provides risk-tiered adapters. Creating or approving an agent record does not launch a hosted worker.
+- **Actions:** [`backend/deployment/`](backend/deployment/) generates LangGraph code and provides risk-tiered adapters. Creating or approving an agent record does not launch a hosted worker. See the [generated-runtime contract](docs/GENERATED-WORKFLOWS.md) for strict review decisions, manual prerequisite gates, supported topology, and checkpoint tests.
 - **Interface:** [`frontend/src/lib/api.ts`](frontend/src/lib/api.ts) is the configured REST client. The archetype workbench has a separate, explicitly selected synthetic browser preview. Distillation uses the backend and requires opt-in before generating fallback sample rows. Failed API requests remain errors.
 
 ### Five workbench examples
@@ -142,7 +142,7 @@ Both usage attestations default to false on the job API and must be supplied as 
 
 ## Verification
 
-The [CI definition](.github/workflows/ci.yml) runs backend lint and tests on Python 3.12, 3.13, and 3.14, plus frontend lint, unit tests, TypeScript checking, and a build on Node.js 22. The backend test command enforces **100% measured coverage**; this is a test-suite threshold, not a correctness or security guarantee.
+The [CI definition](.github/workflows/ci.yml) runs backend lint and tests on Python 3.12, 3.13, and 3.14, plus frontend lint, unit tests, TypeScript checking, and a build on Node.js 22. A separate optional-runtime job executes generated workflows against the tested LangGraph and SQLite checkpoint dependencies. The backend test command enforces **100% measured coverage**; this is a test-suite threshold, not a correctness or security guarantee.
 
 Run the same checks locally:
 
@@ -150,7 +150,7 @@ Run the same checks locally:
 # From the repository root, with the virtual environment active
 python -m pip install pytest pytest-cov ruff
 ruff check backend/ tests/ scripts/
-PYTHONPATH=. pytest tests/ --cov=backend --cov-report=term-missing --cov-fail-under=100
+PYTHONPATH=. pytest tests/ --ignore=tests/runtime --cov=backend --cov-report=term-missing --cov-fail-under=100
 
 # Frontend, after npm ci
 cd frontend

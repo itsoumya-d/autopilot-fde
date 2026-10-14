@@ -3,6 +3,15 @@ import { test, expect, API } from './fixtures';
 test('live pilot record lifecycle changes records without starting a worker', async ({ page, request }) => {
   await page.goto('/deploy');
   await expect(page.getByRole('button', { name: 'Create draft pilot', exact: true })).toBeEnabled();
+  // The highest-scored demo workflow has unsupported mined edge names.
+  // Exercise the lifecycle with a complete supported chain instead of
+  // silently relying on whichever score happens to be first.
+  const processesResponse = await request.get(`${API}/processes/`);
+  expect(processesResponse.ok()).toBe(true);
+  const processes = await processesResponse.json();
+  const supported = processes.find((process: { name: string }) => process.name === 'Customer Success Renewal Triage');
+  expect(supported).toBeDefined();
+  await page.getByLabel('Evidence-backed workflow').selectOption(supported.id);
   await expect(page.getByText('This page does not start a hosted worker or route live traffic.', { exact: false })).toBeVisible();
   const slider = page.getByRole('slider', { name: 'Configured traffic percentage' });
   await slider.focus();
@@ -10,7 +19,9 @@ test('live pilot record lifecycle changes records without starting a worker', as
   await expect(slider).toHaveValue('50');
   const createdResponse = page.waitForResponse(r => r.url() === `${API}/agents/deploy` && r.request().method() === 'POST');
   await page.getByRole('button', { name: 'Create draft pilot', exact: true }).click();
-  const created = await (await createdResponse).json();
+  const response = await createdResponse;
+  expect(response.status(), await response.text()).toBe(201);
+  const created = await response.json();
   expect(created.status).toBe('pending_approval');
   expect(created.config.traffic_percentage).toBe(50);
   const group = page.getByTestId(`agent-record-${created.id}`);
@@ -29,6 +40,25 @@ test('live pilot record lifecycle changes records without starting a worker', as
   await expect(page.getByText('Agent record removed.', { exact: true })).toBeVisible();
   const saved = await (await request.get(`${API}/agents/`)).json();
   expect(saved.some((agent: { id: string }) => agent.id === created.id)).toBe(false);
+});
+
+test('unsupported mined topology shows rejection and creates no pilot record', async ({ page, request }) => {
+  const before = await (await request.get(`${API}/agents/`)).json();
+  const processes = await (await request.get(`${API}/processes/`)).json();
+  const unsupported = processes.find((process: { name: string }) => process.name === 'Enterprise Deal Desk & Inbound Lead Routing');
+  expect(unsupported).toBeDefined();
+  await page.goto('/deploy');
+  await expect(page.getByRole('button', { name: 'Create draft pilot', exact: true })).toBeEnabled();
+  await page.getByLabel('Evidence-backed workflow').selectOption(unsupported.id);
+  const rejectedResponse = page.waitForResponse(r => r.url() === `${API}/agents/deploy` && r.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Create draft pilot', exact: true }).click();
+  const rejected = await rejectedResponse;
+  expect(rejected.status()).toBe(422);
+  expect((await rejected.json()).detail).toBe('Mined edges must reference exact workflow step names.');
+  await expect(page.getByRole('main').getByRole('alert')).toContainText('Mined edges must reference exact workflow step names.');
+  await expect(page.getByText('Pilot record created. Pending human approval; no worker was started.', { exact: true })).toHaveCount(0);
+  const after = await (await request.get(`${API}/agents/`)).json();
+  expect(after).toEqual(before);
 });
 
 test('deployment failed load requires explicit refresh before mutation', async ({ page }) => {
