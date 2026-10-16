@@ -31,7 +31,7 @@ export default function Objects() {
   }
 
   return <div className="page-stack">
-    <PageHeader eyebrow="Workspace / Objects" title="Object Lens" description="Follow one object across connected events. Inspect its relationships, chronology, and source evidence together." />
+    <PageHeader title="Object Lens" description="Follow one object across connected events. Inspect its relationships, chronology, and source evidence together." />
     {error && <ErrorState>{error}</ErrorState>}
     {log && <>
       <div className="ledger">

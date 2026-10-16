@@ -182,7 +182,7 @@ export default function Deploy() {
   }
 
   return <div className="page-stack">
-    <PageHeader eyebrow="Operate / Pilots" title="Create a draft pilot" description="Save agent configuration and lifecycle records. This page does not start a hosted worker or route live traffic." />
+    <PageHeader title="Create a draft pilot" description="Save agent configuration and lifecycle records. This page does not start a hosted worker or route live traffic." />
     <div role="status" aria-live="polite" aria-atomic="true">
       {notice && <p className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--success)]">{notice}</p>}
       {loading && <p className="muted text-sm">Loading deployment records…</p>}

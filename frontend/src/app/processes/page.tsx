@@ -91,7 +91,7 @@ export default function Processes() {
 
   return (
     <div className="page-stack">
-      <PageHeader eyebrow="Workspace / Workflows" title="Process map" description="Inspect repeated work and the source evidence behind each candidate workflow." actions={
+      <PageHeader title="Process map" description="Inspect repeated work and the source evidence behind each candidate workflow." actions={
         <button onClick={runDiscovery} disabled={running} className="button-primary min-w-[154px]">{running ? <Loader2 className="animate-spin motion-reduce:animate-none" size={16} aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}{running ? 'Discovering' : 'Run discovery'}</button>
       } />
       {notice && <div role="status" className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--success)]">{notice}</div>}
@@ -111,8 +111,8 @@ export default function Processes() {
             </li>)}
           </ul>
           <div className="border-t border-[var(--border)] px-5 py-3"><p className="metadata">Workflow selection map · positions are illustrative; no dependencies are implied.</p></div>
-          <div className="h-[360px] min-w-0 overflow-hidden rounded-b-lg bg-[var(--canvas)] sm:h-[420px]" aria-label="Workflow selection map">
-            <ReactFlow nodes={nodes} edges={[]} nodeTypes={nodeTypes} onNodeClick={(_, node) => setSelectedId(node.id)} nodesConnectable={false} fitView className="bg-[var(--canvas)]"><Background color="#D8DDD6" gap={24} /><Controls /></ReactFlow>
+          <div className="map-frame h-[360px] min-w-0 sm:h-[420px]" aria-label="Workflow selection map">
+            <ReactFlow nodes={nodes} edges={[]} nodeTypes={nodeTypes} onNodeClick={(_, node) => setSelectedId(node.id)} nodesConnectable={false} fitView className="bg-[var(--canvas-deep)]"><Background color="#d9ddd1" gap={22} /><Controls /></ReactFlow>
           </div>
         </section>
         <aside id="workflow-evidence" className="inspector surface surface-pad min-w-0">

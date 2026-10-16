@@ -60,7 +60,7 @@ export default function ShowcasePage() {
 
   return (
     <div className="page-stack">
-      <PageHeader eyebrow="Studio / Simulation" title="Simulation" description="Explore how a confidence threshold changes a local example. No workflow is executed." />
+      <PageHeader title="Simulation" description="Explore how a confidence threshold changes a local example. No workflow is executed." />
       <div className="flex flex-col gap-2 border-y border-[var(--border)] py-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="muted text-sm">Demo showcase: the numbers and code samples below are illustrative fixtures, not live backend results.</p>
         <SourceLabel>Local sandbox</SourceLabel>

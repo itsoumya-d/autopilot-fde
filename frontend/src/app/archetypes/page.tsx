@@ -194,7 +194,7 @@ export default function ArchetypesPage() {
   const Panel = { project1: KnowledgePanel, project2: IntakePanel, project3: InvoicePanel, project4: OnboardingPanel, project5: OperationsPanel }[activeTab];
   const reduced = useReducedMotion();
   return <div className="page-stack">
-    <PageHeader eyebrow="Studio / Five working examples" title="Workflow Lab" description="Inspect the input. Follow the evidence. Review the result." />
+    <PageHeader eyebrow="Five working examples" title="Workflow Lab" description="Inspect the input. Follow the evidence. Review the result." />
     <section aria-label="Workbench execution mode" className="space-y-3">
       <div className="mode-toolbar"><fieldset><legend>Execution mode</legend><label><input type="radio" name="workbench-mode" checked={mode === 'connected'} onChange={() => setMode('connected')} /> Connected API</label><label><input type="radio" name="workbench-mode" checked={mode === 'demo'} onChange={() => setMode('demo')} /> Synthetic demo (local)</label></fieldset><StatusBadge>Synthetic inputs · no external actions</StatusBadge></div>
       <p role="status" className="metadata">{mode === 'demo' ? 'Synthetic demo selected. No API requests are made; records exist only in this browser session.' : 'Connected API selected. Results appear only after a successful API response. Backend examples use synthetic data and in-memory state.'}</p>

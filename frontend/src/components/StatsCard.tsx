@@ -11,12 +11,12 @@ interface StatsCardProps {
 const StatsCard: React.FC<StatsCardProps> = ({ label, value, icon: Icon, trend, trendUp }) => {
   return (
     <div className="ledger-stat min-w-0">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <Icon size={17} className="text-[var(--text-muted)]" aria-hidden="true" />
+      <div className="flex items-center justify-between gap-3">
+        <span className="ledger-icon" aria-hidden="true"><Icon size={16} /></span>
         {trend && <span className={`metadata ${trendUp ? 'text-[var(--success)]' : 'text-[var(--text-muted)]'}`}>{trend}</span>}
       </div>
-      <div>
-        <h3 className="text-sm text-[var(--text-muted)]">{label}</h3>
+      <div className="mt-4">
+        <h3 className="text-xs font-semibold uppercase tracking-[.06em] text-[var(--text-muted)]">{label}</h3>
         <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums">{value}</p>
       </div>
     </div>

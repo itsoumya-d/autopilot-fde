@@ -33,18 +33,18 @@ export default function Scores() {
   const nameFor = (id: string) => processes.find(process => process.id === id)?.name || id;
 
   return <div className="page-stack">
-    <PageHeader eyebrow="Workspace / Opportunities" title="Automation opportunity" description="Compare value, feasibility, and evidence confidence. An opportunity score is not authorization to act." />
+    <PageHeader title="Automation opportunity" description="Compare value, feasibility, and evidence confidence. An opportunity score is not authorization to act." />
     {error && <ErrorState>{error}</ErrorState>}
     <div className="workspace-grid items-start">
       <section className="surface min-w-0 overflow-hidden" aria-labelledby="ranked-workflows" aria-busy={loading}>
         <div className="surface-pad border-b border-[var(--border)]"><h2 id="ranked-workflows" className="text-lg font-semibold">Evidence-ranked workflows</h2><p className="metadata mt-2">Backend recommendations · estimated hours are potential savings</p></div>
         <div role="region" aria-label="Workflow scores table" tabIndex={0} className="overflow-x-auto">
           <table className="w-full min-w-[35rem] text-left text-sm">
-            <thead className="bg-[var(--surface-subtle)] text-xs text-[var(--text-muted)]"><tr><th scope="col" className="px-5 py-3 font-medium">Process</th><th scope="col" className="px-4 py-3 font-medium">Opportunity</th><th scope="col" className="px-4 py-3 font-medium">Evidence</th><th scope="col" className="px-4 py-3 font-medium">Mode</th></tr></thead>
-            <tbody className="divide-y divide-[var(--border)]">{scores.map(score => <tr key={score.process_id} onClick={() => setSelectedId(score.process_id)} className={`cursor-pointer transition-colors ${selectedId === score.process_id ? 'bg-[var(--accent-soft)]' : 'hover:bg-[var(--canvas)]'}`}>
-              <td className="px-5 py-4"><button type="button" aria-label={`Show score for ${nameFor(score.process_id)}`} aria-pressed={selectedId === score.process_id} aria-controls="score-explanation" onClick={event => { event.stopPropagation(); setSelectedId(score.process_id); }} className="rounded-sm text-left font-medium">{nameFor(score.process_id)}</button><p className="metadata mt-2 tabular-nums">{score.estimated_hours_saved_monthly} h/mo potential</p></td>
-              <td className="px-4 py-4"><div className="flex items-center gap-3"><span className="w-6 font-semibold tabular-nums">{score.score}</span><div aria-hidden="true" className="h-1.5 w-14 overflow-hidden rounded-full bg-[var(--border)]"><div className="h-full bg-[var(--accent)]" style={{ width: `${Math.min(100, Math.max(0, score.score))}%` }} /></div></div></td>
-              <td className="px-4 py-4 tabular-nums">{score.evidence_confidence}%</td><td className="px-4 py-4"><StatusBadge>{modeLabels[score.recommended_mode] ?? 'Not reported'}</StatusBadge></td>
+            <thead className="sticky top-0 z-[1] bg-[var(--surface-tint)] text-[11px] uppercase tracking-[.04em] text-[var(--text-muted)]"><tr><th scope="col" className="whitespace-nowrap px-5 py-3 font-semibold">Process</th><th scope="col" className="whitespace-nowrap px-4 py-3 font-semibold">Opportunity</th><th scope="col" className="whitespace-nowrap px-4 py-3 font-semibold">Evidence</th><th scope="col" className="whitespace-nowrap px-4 py-3 font-semibold">Mode</th></tr></thead>
+            <tbody className="divide-y divide-[var(--border-soft)]">{scores.map(score => <tr key={score.process_id} onClick={() => setSelectedId(score.process_id)} className={`cursor-pointer transition-colors ${selectedId === score.process_id ? 'bg-[var(--accent-soft)] shadow-[inset_3px_0_0_var(--accent)]' : 'hover:bg-[var(--surface-tint)]'}`}>
+              <td className="px-5 py-4"><button type="button" aria-label={`Show score for ${nameFor(score.process_id)}`} aria-pressed={selectedId === score.process_id} aria-controls="score-explanation" onClick={event => { event.stopPropagation(); setSelectedId(score.process_id); }} className="rounded-sm text-left font-semibold">{nameFor(score.process_id)}</button><p className="metadata mt-2 tabular-nums">{score.estimated_hours_saved_monthly} h/mo potential</p></td>
+              <td className="px-4 py-4"><div className="flex items-center gap-3"><span className="w-10 shrink-0 font-semibold tabular-nums whitespace-nowrap">{score.score}</span><div aria-hidden="true" className="h-1.5 w-14 overflow-hidden rounded-full bg-[var(--border)]"><div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${Math.min(100, Math.max(0, score.score))}%` }} /></div></div></td>
+              <td className="px-4 py-4 tabular-nums whitespace-nowrap">{score.evidence_confidence}%</td><td className="px-4 py-4"><StatusBadge>{modeLabels[score.recommended_mode] ?? 'Not reported'}</StatusBadge></td>
             </tr>)}</tbody>
           </table>
         </div>
