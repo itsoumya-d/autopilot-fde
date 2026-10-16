@@ -26,7 +26,7 @@ export default function Channels() {
   }, []);
 
   return <div className="page-stack">
-    <PageHeader eyebrow="Workspace / Sources" title="Observation sources" description="Review the sources behind discovery. Connection status and access mode are reported separately." />
+    <PageHeader title="Observation sources" description="Review the sources behind discovery. Connection status and access mode are reported separately." />
     {error && <ErrorState>{error}</ErrorState>}
     <section className="surface" aria-label="Source register" aria-busy={loading}>
       <div className="surface-pad border-b border-[var(--border)]">

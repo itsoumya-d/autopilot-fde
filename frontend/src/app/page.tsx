@@ -22,7 +22,7 @@ export default function Home() {
 
   return (
     <div className="page-stack">
-      <PageHeader eyebrow="Workspace / Overview" title="Workspace overview"
+      <PageHeader title="Workspace overview"
         description="Observe work, inspect the evidence, and prepare human-reviewed draft pilots."
         actions={<Link href="/processes" className="button-primary">Inspect processes <ArrowRight size={16} aria-hidden="true" /></Link>} />
 

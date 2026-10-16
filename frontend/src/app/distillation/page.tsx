@@ -107,7 +107,7 @@ export default function DistillationPage() {
 
   return (
     <div className="page-stack">
-      <PageHeader eyebrow="Studio / Model Recipes" title="Model Recipes" description="Generate a dataset and local training recipes through your configured backend. This workflow does not call a teacher model, train a model, or deploy a service." />
+      <PageHeader title="Model Recipes" description="Generate a dataset and local training recipes through your configured backend. This workflow does not call a teacher model, train a model, or deploy a service." />
       <SourceLabel>Backend mode · No automatic demo fallback. Generated files stay on the backend filesystem.</SourceLabel>
 
       <div className="workspace-grid">

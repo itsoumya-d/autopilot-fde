@@ -34,7 +34,7 @@ export default function Performance() {
   }, [agents]);
 
   return <div className="page-stack">
-    <PageHeader eyebrow="Operate / Performance" title="Pilot performance" description="Recorded agent activity and configured review policies. Running status does not confirm a live worker." />
+    <PageHeader title="Pilot performance" description="Recorded agent activity and configured review policies. Running status does not confirm a live worker." />
     {loading && <p role="status" className="muted">Loading agent records…</p>}
     {error && <ErrorState>{error}</ErrorState>}
     <div className="ledger grid grid-cols-1 md:grid-cols-3" aria-busy={loading}>

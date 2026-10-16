@@ -61,7 +61,7 @@ export default function SocialDeckPage() {
 
   return (
     <div className="page-stack">
-      <PageHeader eyebrow="Studio / Social Studio" title="Social Studio" description="Preview three content layouts and copy their accompanying text. Review example claims before sharing." />
+      <PageHeader title="Social Studio" description="Preview three content layouts and copy their accompanying text. Review example claims before sharing." />
       <div className="flex flex-wrap items-center justify-between gap-4 border-y border-[var(--border)] py-4">
         <div className="flex flex-wrap gap-2" role="group" aria-label="Content format">{formats.map(tab => <button key={tab.id} type="button" aria-label={tab.label} aria-pressed={activeTheme === tab.id} onClick={() => setActiveTheme(tab.id)} className={activeTheme === tab.id ? 'button-primary' : 'button-secondary'}>{tab.short}</button>)}</div>
         <SourceLabel>Local content preview · No publishing</SourceLabel>
