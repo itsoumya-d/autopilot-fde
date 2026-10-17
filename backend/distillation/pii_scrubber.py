@@ -66,34 +66,28 @@ class PIIScrubber:
 
     @classmethod
     def scrub_dict(cls, data: dict[str, Any]) -> tuple[dict[str, Any], int]:
-        """Recursively scrub all string values inside a dictionary."""
+        """Scrub string values in nested dictionaries/lists without mutating input."""
         total_redactions = 0
         result: dict[str, Any] = {}
 
         for k, v in data.items():
-            if isinstance(v, str):
-                scrubbed_v, count = cls.scrub_text(v)
-                result[k] = scrubbed_v
-                total_redactions += count
-            elif isinstance(v, dict):
-                scrubbed_dict, count = cls.scrub_dict(v)
-                result[k] = scrubbed_dict
-                total_redactions += count
-            elif isinstance(v, list):
-                scrubbed_list = []
-                for item in v:
-                    if isinstance(item, str):
-                        s_item, count = cls.scrub_text(item)
-                        scrubbed_list.append(s_item)
-                        total_redactions += count
-                    elif isinstance(item, dict):
-                        s_item, count = cls.scrub_dict(item)
-                        scrubbed_list.append(s_item)
-                        total_redactions += count
-                    else:
-                        scrubbed_list.append(item)
-                result[k] = scrubbed_list
-            else:
-                result[k] = v
+            result[k], count = cls._scrub_value(v)
+            total_redactions += count
 
         return result, total_redactions
+
+    @classmethod
+    def _scrub_value(cls, value: Any) -> tuple[Any, int]:
+        if isinstance(value, str):
+            return cls.scrub_text(value)
+        if isinstance(value, dict):
+            return cls.scrub_dict(value)
+        if isinstance(value, list):
+            scrubbed_list = []
+            total_redactions = 0
+            for item in value:
+                scrubbed_item, count = cls._scrub_value(item)
+                scrubbed_list.append(scrubbed_item)
+                total_redactions += count
+            return scrubbed_list, total_redactions
+        return value, 0
