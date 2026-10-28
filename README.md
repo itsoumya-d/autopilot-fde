@@ -160,6 +160,22 @@ AUTOPILOT_COST_TABLE='{"my-model": {"input": 0.5, "output": 1.5}}'  # USD per 1M
 
 `snapshot()` returns totals plus sorted rollups and is safe to persist with `dump(path)`. The numbers are estimates from the configured table, not provider invoices; verify rates before using them for billing or chargeback.
 
+## Document extraction eval
+
+`scripts/document_extraction_eval.py` is a provider-agnostic evaluation harness for structured document extraction. It reports the metrics that decide whether an extraction feature is safe to ship: schema validity, field accuracy, exact-match rate, p50/p95 latency, and estimated cost per call.
+
+```bash
+PYTHONPATH=. python scripts/document_extraction_eval.py --json --cost-per-call 0.01
+```
+
+The default `FixtureExtractor` uses the deterministic invoice fixture in `backend/archetypes/project3_document_intel.py`, so a clean run reports 100% accuracy and near-zero latency. That is intentional: the fixture proves the harness, not a model. Swap the extractor callable for a hosted or open-weight adapter to compare providers on the same cases:
+
+```python
+summary = evaluate(cases, hosted_extractor, cost_per_call_usd=0.012)
+```
+
+The harness is covered by `tests/test_document_extraction_eval.py`. It makes accuracy, schema validity, latency, and cost visible before a feature reaches a customer.
+
 ## Verification
 
 The [CI definition](.github/workflows/ci.yml) runs backend lint and tests on Python 3.12, 3.13, and 3.14, plus frontend lint, unit tests, TypeScript checking, and a build on Node.js 22. A separate optional-runtime job executes generated workflows against the tested LangGraph and SQLite checkpoint dependencies. The backend test command enforces **100% measured coverage**; this is a test-suite threshold, not a correctness or security guarantee.
