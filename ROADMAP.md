@@ -20,7 +20,7 @@ gantt
   section v0.5.0 Observable and Compliant
   OTel gen_ai.* spans (optional extra)      :active, a1, 2026-08-24, 1d
   Hash-chained tamper-evident audit export  :a2, after a1, 1d
-  Token-cost attribution rollups            :a3, after a2, 1d
+  Token-cost attribution rollups            :done, a3, after a2, 1d
 
   section v0.11.0 Intersection Alerts
   Deterministic rules engine + API + MCP      :done, g1, 2026-08-24, 1d

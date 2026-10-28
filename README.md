@@ -140,6 +140,26 @@ The exported files include an Unsloth script, an Ollama Modelfile, and a vLLM sh
 
 Both usage attestations default to false on the job API and must be supplied as true to generate artifacts. They record operator choices. They do not confer data rights, override provider/model terms, or establish legal compliance. Review the applicable data permissions and terms before training or sharing a dataset. Cost comparisons use hard-coded assumptions and exclude a full accounting of engineering, training, hosting, and operations.
 
+## Token-cost attribution
+
+[`backend/observability/cost.py`](backend/observability/cost.py) turns the token counts already carried by the `gen_ai.*` spans into USD rollups per model, agent and tool. It is dependency-free and deterministic: prices come from an explicit table, unknown models are recorded as `unpriced_models` instead of being guessed at, and negative counts clamp to zero.
+
+```python
+from backend.observability.cost import CostAttributor, UsageRecord
+
+attributor = CostAttributor()
+attributor.record(UsageRecord("gpt-4o", 120_000, 8_000, agent_id="triage", tool_name="classify"))
+print(attributor.snapshot()["total_usd"])
+```
+
+Override or extend prices without code changes:
+
+```bash
+AUTOPILOT_COST_TABLE='{"my-model": {"input": 0.5, "output": 1.5}}'  # USD per 1M tokens
+```
+
+`snapshot()` returns totals plus sorted rollups and is safe to persist with `dump(path)`. The numbers are estimates from the configured table, not provider invoices; verify rates before using them for billing or chargeback.
+
 ## Verification
 
 The [CI definition](.github/workflows/ci.yml) runs backend lint and tests on Python 3.12, 3.13, and 3.14, plus frontend lint, unit tests, TypeScript checking, and a build on Node.js 22. A separate optional-runtime job executes generated workflows against the tested LangGraph and SQLite checkpoint dependencies. The backend test command enforces **100% measured coverage**; this is a test-suite threshold, not a correctness or security guarantee.
