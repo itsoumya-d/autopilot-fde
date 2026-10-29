@@ -160,6 +160,18 @@ AUTOPILOT_COST_TABLE='{"my-model": {"input": 0.5, "output": 1.5}}'  # USD per 1M
 
 `snapshot()` returns totals plus sorted rollups and is safe to persist with `dump(path)`. The numbers are estimates from the configured table, not provider invoices; verify rates before using them for billing or chargeback.
 
+## Media feed ingestion
+
+`backend/ingestion/feed_parser.py` parses RSS 2.0 and Atom feeds for publishing and media workflows. It normalizes item IDs, titles, links, summaries, and dates; deduplicates by feed ID or link; filters by a `since` timestamp; and treats naive Atom dates as UTC.
+
+```python
+from backend.ingestion.feed_parser import parse_feed
+
+items = parse_feed(xml_text, source="Allied Media", since=last_run)
+```
+
+The parser has 15 focused tests and 100% module coverage (`tests/test_feed_parser.py`). It is a pure, dependency-free ingestion component; the connector that schedules and persists feeds is intentionally left to the host application.
+
 ## Verification
 
 The [CI definition](.github/workflows/ci.yml) runs backend lint and tests on Python 3.12, 3.13, and 3.14, plus frontend lint, unit tests, TypeScript checking, and a build on Node.js 22. A separate optional-runtime job executes generated workflows against the tested LangGraph and SQLite checkpoint dependencies. The backend test command enforces **100% measured coverage**; this is a test-suite threshold, not a correctness or security guarantee.
