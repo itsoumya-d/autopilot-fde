@@ -172,6 +172,27 @@ items = parse_feed(xml_text, source="Allied Media", since=last_run)
 
 The parser has 15 focused tests and 100% module coverage (`tests/test_feed_parser.py`). It is a pure, dependency-free ingestion component; the connector that schedules and persists feeds is intentionally left to the host application.
 
+## Enterprise data platform ingestion
+
+`backend/ingestion/data_platform.py` provides the deterministic core for a multi-source enterprise data platform. It validates record envelopes, enforces tenant isolation, retries transient sink failures with capped exponential backoff, records dead letters after exhaustion, and deduplicates successful writes by a tenant/source/record/version idempotency key.
+
+```python
+from backend.ingestion.data_platform import DataPlatformIngestor, RetryPolicy
+
+ingestor = DataPlatformIngestor(
+    sink=my_sink,
+    retry_policy=RetryPolicy(max_attempts=3, base_delay_seconds=0.05),
+)
+result = ingestor.ingest(
+    tenant_id="tenant-a",
+    source_id="crm",
+    records=[{"id": "customer-1", "version": 1, "payload": {"name": "Ada"}}],
+)
+print(result.accepted, result.duplicates, result.failed, result.dead_letters)
+```
+
+The sink is any object with a `write(envelope)` method, so the same core can target Postgres, an object store, or a queue. The module does not claim production connector behavior or exactly-once delivery; the host application must make the sink transactionally idempotent. `tests/test_data_platform.py` covers retries, dead letters, tenant isolation, versioned idempotency, and failed-write recovery.
+
 ## Verification
 
 The [CI definition](.github/workflows/ci.yml) runs backend lint and tests on Python 3.12, 3.13, and 3.14, plus frontend lint, unit tests, TypeScript checking, and a build on Node.js 22. A separate optional-runtime job executes generated workflows against the tested LangGraph and SQLite checkpoint dependencies. The backend test command enforces **100% measured coverage**; this is a test-suite threshold, not a correctness or security guarantee.
