@@ -21,7 +21,7 @@ from backend.main import app
 def main() -> None:
     original_directory = Path.cwd()
     with TemporaryDirectory(prefix="autopilot-browser-test-") as directory:
-        database.DB_PATH = Path(directory) / "autopilot.db"
+        database.DB_PATH = Path(directory).resolve() / "autopilot.db"
         os.chdir(directory)
         try:
             uvicorn.run(app, host="127.0.0.1", port=8000)
