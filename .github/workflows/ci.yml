@@ -46,6 +46,9 @@ jobs:
       - name: Run test suite with coverage gate
         run: PYTHONPATH=. pytest tests/ --ignore=tests/runtime --cov=backend --cov-report=term-missing --cov-fail-under=100
 
+      - name: Run smoke test
+        run: bash scripts/smoke.sh
+
   generated-runtime:
     runs-on: ubuntu-latest
     env:
