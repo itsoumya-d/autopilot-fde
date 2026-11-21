@@ -1,6 +1,5 @@
 """Unit tests for the enterprise agent execution runtime with idempotency and WAL state persistence."""
 
-import json
 import tempfile
 from pathlib import Path
 import pytest
@@ -8,9 +7,7 @@ import pytest
 from backend.runtime.agent_execution_runtime import (
     AgentExecutionRuntime,
     AgentStep,
-    IdempotencyViolationError,
     PolicyRejectionError,
-    ToolExecutionError,
 )
 
 

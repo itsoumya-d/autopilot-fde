@@ -5,9 +5,10 @@ from __future__ import annotations
 import json
 import logging
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -154,7 +155,7 @@ class AgentExecutionRuntime:
     def _recover_from_wal(self) -> None:
         if not self.wal_path or not self.wal_path.exists():
             return
-        with open(self.wal_path, "r", encoding="utf-8") as f:
+        with open(self.wal_path, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line:
