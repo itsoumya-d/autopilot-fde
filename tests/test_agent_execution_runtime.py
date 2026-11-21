@@ -8,6 +8,7 @@ from backend.runtime.agent_execution_runtime import (
     AgentExecutionRuntime,
     AgentStep,
     PolicyRejectionError,
+    ToolExecutionError,
 )
 
 
@@ -131,3 +132,66 @@ def test_execution_trace_generation():
     assert traces[0]["tool_name"] == "echo"
     assert traces[0]["status"] == "SUCCESS"
     assert "duration_ms" in traces[0]
+
+
+def test_unregistered_tool_raises():
+    runtime = AgentExecutionRuntime()
+    step = AgentStep("s-bad", "nonexistent_tool", {})
+    with pytest.raises(ToolExecutionError, match="Tool 'nonexistent_tool' is not registered"):
+        runtime.execute_step(step)
+
+
+def test_schema_validation_missing_and_invalid_type():
+    runtime = AgentExecutionRuntime()
+    runtime.register_tool("typed_tool", lambda args: args, schema={"name": str, "count": int})
+
+    # Missing param
+    with pytest.raises(ToolExecutionError, match="Missing required parameter 'name'"):
+        runtime.execute_step(AgentStep("s-miss", "typed_tool", {"count": 5}))
+
+    # Wrong type
+    with pytest.raises(ToolExecutionError, match="Parameter 'count' expected int, got str"):
+        runtime.execute_step(AgentStep("s-type", "typed_tool", {"name": "test", "count": "five"}))
+
+
+def test_tool_failure_records_failed_trace_and_raises():
+    runtime = AgentExecutionRuntime()
+
+    def faulty_handler(args: dict) -> dict:
+        raise ValueError("database connection timed out")
+
+    runtime.register_tool("faulty", faulty_handler)
+    step = AgentStep("s-err", "faulty", {})
+
+    with pytest.raises(ToolExecutionError, match="Tool 'faulty' failed: database connection timed out"):
+        runtime.execute_step(step)
+
+    traces = runtime.get_traces()
+    assert len(traces) == 1
+    assert traces[0]["status"] == "FAILED"
+    assert "database connection timed out" in traces[0]["error"]
+
+
+def test_wal_recovery_corrupt_and_empty_lines():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        wal_path = Path(tmpdir) / "corrupt.wal"
+        content = (
+            "\n"
+            "   \n"
+            "{invalid json}\n"
+            '{"not_a_key": 123}\n'
+            '{"key": "valid_entry", "output": {"recovered": true}}\n'
+        )
+        wal_path.write_text(content, encoding="utf-8")
+
+        runtime = AgentExecutionRuntime(wal_path=wal_path)
+        assert runtime.is_idempotency_key_executed("valid_entry")
+        assert not runtime.is_idempotency_key_executed("not_a_key")
+
+
+def test_append_wal_noop_when_path_none():
+    runtime = AgentExecutionRuntime(wal_path=None)
+    runtime._append_wal("some_key", {"ok": True})
+    runtime._recover_from_wal()
+    assert not runtime.is_idempotency_key_executed("some_key")
+
